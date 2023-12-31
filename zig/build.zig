@@ -1,4 +1,5 @@
 const std = @import("std");
+const raySdk = @import("vendor/raylib/src/build.zig");
 
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
@@ -35,6 +36,18 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    const gui_exe = b.addExecutable(.{
+        .name = "chess-gui",
+        .root_source_file = .{ .path = "gui/main.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+    const raylib = raySdk.addRaylib(b, target, optimize, .{});
+    gui_exe.addIncludePath(.{ .path = "vendor/raylib/src" });
+    gui_exe.linkLibrary(raylib);
+
+    b.installArtifact(gui_exe);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
