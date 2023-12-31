@@ -1,0 +1,37 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug exe",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/zig-out/bin/chess.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/zig-out/bin",
+            "symbolSearchPath": "${workspaceFolder}/zig-out/bin",
+            "environment": [],
+            "preLaunchTask": "build chess",
+            "externalConsole": false,
+            "logging": {
+                "moduleLoad": false
+            },
+        },
+        {
+            "name": "Debug test",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/zig-out/bin/test.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/zig-out/bin",
+            "symbolSearchPath": "${workspaceFolder}/zig-out/bin",
+            "preLaunchTask": "build chess",
+            "environment": [],
+            "externalConsole": false,
+            "logging": {
+                "moduleLoad": false
+            },
+        }
+    ]
+}
