@@ -47,6 +47,11 @@ pub fn build(b: *std.Build) void {
     gui_exe.addIncludePath(.{ .path = "vendor/raylib/src" });
     gui_exe.linkLibrary(raylib);
 
+    gui_exe.addIncludePath(.{ .path = "vendor/raygui/src" });
+
+    gui_exe.addCSourceFile(.{ .file = std.build.LazyPath.relative("vendor/raygui/src/raygui.c"), .flags = &.{ "-g", "-O3" } }); // Add the Raygui C source file, if any
+    gui_exe.linkSystemLibrary("c"); // Link with the C standard library
+
     b.installArtifact(gui_exe);
 
     // This declares intent for the executable to be installed into the
