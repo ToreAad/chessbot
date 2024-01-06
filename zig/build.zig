@@ -1,10 +1,55 @@
 const std = @import("std");
 const raySdk = @import("vendor/raylib/src/build.zig");
+const builtin = @import("builtin");
 
-// Although this function looks imperative, note that its job is to
-// declaratively construct a build graph that will be executed by an external
-// runner.
-pub fn build(b: *std.Build) void {
+fn build_chess_lib(b: *std.Build, target: std.zig.CrossTarget, optimize: std.builtin.OptimizeMode) *std.Build.CompileStep {
+    const chess_unit_tests = b.addTest(.{
+        .name = "test",
+        .root_source_file = .{ .path = "chess/chess.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+
+    // install the unit test executables
+    b.installArtifact(chess_unit_tests);
+    const run_chess_unit_tests = b.addRunArtifact(chess_unit_tests);
+    const test_step = b.step("test", "Run chess unit tests");
+    test_step.dependOn(&run_chess_unit_tests.step);
+
+    const chess_lib = b.addStaticLibrary(.{
+        .name = "chess",
+        .root_source_file = .{ .path = "chess/chess.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+    return chess_lib;
+}
+
+fn build_chess_gui(b: *std.Build, target: std.zig.CrossTarget, optimize: std.builtin.OptimizeMode) *std.Build.CompileStep {
+    const gui_exe = b.addExecutable(.{
+        .name = "chess-gui",
+        .root_source_file = .{ .path = "gui/main.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+    const raylib = raySdk.addRaylib(b, target, optimize, .{});
+    gui_exe.addIncludePath(.{ .path = "vendor/raylib/src" });
+    gui_exe.linkLibrary(raylib);
+
+    gui_exe.addIncludePath(.{ .path = "vendor/raygui/src" });
+
+    gui_exe.addCSourceFile(.{ .file = std.build.LazyPath.relative("vendor/raygui-amend/raygui.c"), .flags = &.{ "-g", "-O3" } }); // Add the Raygui C source file, if any
+    gui_exe.linkSystemLibrary("c"); // Link with the C standard library
+
+    b.installArtifact(gui_exe);
+
+    const run_step = b.step("run", "Run the chess gui");
+    const run_cmd = b.addRunArtifact(gui_exe);
+    run_step.dependOn(&run_cmd.step);
+    return gui_exe;
+}
+
+fn build_example(b: *std.Build) void {
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
@@ -31,28 +76,11 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(lib);
 
     const exe = b.addExecutable(.{
-        .name = "chess",
+        .name = "main",
         .root_source_file = .{ .path = "src/main.zig" },
         .target = target,
         .optimize = optimize,
     });
-
-    const gui_exe = b.addExecutable(.{
-        .name = "chess-gui",
-        .root_source_file = .{ .path = "gui/main.zig" },
-        .target = target,
-        .optimize = optimize,
-    });
-    const raylib = raySdk.addRaylib(b, target, optimize, .{});
-    gui_exe.addIncludePath(.{ .path = "vendor/raylib/src" });
-    gui_exe.linkLibrary(raylib);
-
-    gui_exe.addIncludePath(.{ .path = "vendor/raygui/src" });
-
-    gui_exe.addCSourceFile(.{ .file = std.build.LazyPath.relative("vendor/raygui-amend/raygui.c"), .flags = &.{ "-g", "-O3" } }); // Add the Raygui C source file, if any
-    gui_exe.linkSystemLibrary("c"); // Link with the C standard library
-
-    b.installArtifact(gui_exe);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
@@ -99,18 +127,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const chess_unit_tests = b.addTest(.{
-        .name = "test",
-        .root_source_file = .{ .path = "src/chess.zig" },
-        .target = target,
-        .optimize = optimize,
-    });
-
-    // install the unit test executables
-    b.installArtifact(chess_unit_tests);
-
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
-    const run_chess_unit_tests = b.addRunArtifact(chess_unit_tests);
 
     // Similar to creating the run step earlier, this exposes a `test` step to
     // the `zig build --help` menu, providing a way for the user to request
@@ -118,5 +135,15 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
-    test_step.dependOn(&run_chess_unit_tests.step);
+}
+
+// Although this function looks imperative, note that its job is to
+// declaratively construct a build graph that will be executed by an external
+// runner.
+pub fn build(b: *std.Build) void {
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+
+    _ = build_chess_gui(b, target, optimize);
+    _ = build_chess_lib(b, target, optimize);
 }
