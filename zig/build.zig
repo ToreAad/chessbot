@@ -3,18 +3,30 @@ const raySdk = @import("vendor/raylib/src/build.zig");
 const builtin = @import("builtin");
 
 fn build_chess_lib(b: *std.Build, target: std.zig.CrossTarget, optimize: std.builtin.OptimizeMode) *std.Build.CompileStep {
-    const chess_unit_tests = b.addTest(.{
-        .name = "test",
-        .root_source_file = .{ .path = "chess/chess.zig" },
-        .target = target,
-        .optimize = optimize,
-    });
-
-    // install the unit test executables
-    b.installArtifact(chess_unit_tests);
-    const run_chess_unit_tests = b.addRunArtifact(chess_unit_tests);
     const test_step = b.step("test", "Run chess unit tests");
-    test_step.dependOn(&run_chess_unit_tests.step);
+
+    const chess_files = [_][]const u8{
+        "board",
+        "chess",
+        "game",
+        "position",
+        "rules",
+        "square",
+    };
+
+    inline for (chess_files) |file| {
+        const chess_unit_tests = b.addTest(.{
+            .name = file ++ "_test",
+            .root_source_file = .{ .path = "chess/" ++ file ++ ".zig" },
+            .target = target,
+            .optimize = optimize,
+        });
+
+        // install the unit test executables
+        b.installArtifact(chess_unit_tests);
+        const run_chess_unit_tests = b.addRunArtifact(chess_unit_tests);
+        test_step.dependOn(&run_chess_unit_tests.step);
+    }
 
     const chess_lib = b.addStaticLibrary(.{
         .name = "chess",
