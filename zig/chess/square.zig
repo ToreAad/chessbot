@@ -55,11 +55,7 @@ fn is_white(state: u32) bool {
 }
 
 fn get_color(state: u32) Colors {
-    if (is_black(state)) {
-        return Colors.Black;
-    } else {
-        return Colors.White;
-    }
+    return if (is_black(state)) Colors.Black else Colors.White;
 }
 
 fn set_moved(state: u32) u32 {

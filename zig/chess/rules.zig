@@ -1,5 +1,6 @@
 const g = @import("game.zig");
 const s = @import("square.zig");
+const p = @import("position.zig");
 
 fn is_legal_move_pawn(game: *g.Game, action: g.Move) bool {
     const from = action.from;
@@ -216,29 +217,103 @@ fn legal_move(game: *g.Game, action: g.Move) bool {
 }
 
 fn legal_castle(game: *g.Game, action: g.CastleInfo) bool {
-    _ = game;
-    _ = action;
-    //TODO
-    unreachable;
+    if (is_in_check(game)) {
+        return false;
+    }
+
+    const king_square = if (game.active_color == s.Colors.White) p.W_K1 else p.B_K1;
+    const king = game.board.get_square_at(king_square);
+    if (king.piece != s.Piece.King) {
+        return false;
+    }
+    if (king.moved) {
+        return false;
+    }
+
+    const rook_square = if (action.king_side) p.Position{ .rank = king_square.rank, .file = 7 } else p.Position{ .rank = king_square.rank, .file = 0 };
+    const rook = game.board.get_square_at(rook_square);
+    if (rook.piece != s.Piece.Rook) {
+        return false;
+    }
+    if (rook.moved) {
+        return false;
+    }
+
+    var inbetween_file = if (action.king_side) 5 else 3;
+    const direction = if (action.king_side) 1 else -1;
+    while (inbetween_file != king_square.file) : (inbetween_file += direction) {
+        const square = game.board.get_square_at(p.Position{ .rank = king_square.rank, .file = inbetween_file });
+        if (!square.empty) {
+            return false;
+        }
+    }
+    return true;
 }
 
 fn legal_en_passant(game: *g.Game, action: g.EnPassantInfo) bool {
-    _ = game;
-    _ = action;
+    const from = action.from;
+    const to = action.to;
+    const from_square = game.board.get_square_at(from);
+    if (from_square.piece != s.Piece.Pawn) {
+        return false;
+    }
 
-    //TODO
-    unreachable;
+    const to_square = game.board.get_square_at(to);
+    if (!to_square.empty) {
+        return false;
+    }
+
+    const en_passant_square = if (game.active_color == s.Colors.White) p.Position{ .rank = to.rank - 1, .file = to.file } else p.Position{ .rank = to.rank + 1, .file = to.file };
+    const en_passant = game.board.get_square_at(en_passant_square);
+    if (en_passant.piece != s.Piece.Pawn) {
+        return false;
+    }
+    if (en_passant.color == game.active_color) {
+        return false;
+    }
+
+    switch (game.last_action) {
+        g.Action.Move => {
+            const last_move = game.last_action.Move;
+            const last_from = last_move.from;
+            const last_to = last_move.to;
+            const last_to_square = game.board.get_square_at(last_to);
+            if (last_to_square.piece != s.Piece.Pawn) {
+                return false;
+            }
+            if (last_from.rank != 6 or last_to.rank != 1) {
+                return false;
+            }
+            return true;
+        },
+        else => {
+            return false;
+        },
+    }
+
+    return true;
 }
 
 fn legal_promotion(game: *g.Game, action: g.PromotionInfo) bool {
-    _ = game;
-    _ = action;
+    // Make sure is pawn
+    const to_square = game.board.get_square_at(action.to);
+    if (to_square.piece != s.Piece.Pawn) {
+        return false;
+    }
 
-    //TODO
-    unreachable;
+    // Make sure pawn move is legal
+    const move = action.Move{
+        .from = action.from,
+        .to = action.to,
+    };
+    if (!legal_move(game, move)) {
+        return false;
+    }
+
+    return true;
 }
 
-fn is_self_mate(game: *g.Game) bool {
+fn is_in_check(game: *g.Game) bool {
     const king_square = game.board.get_king_square(game.active_color);
 
     // check if king is in check from pawn:
@@ -357,5 +432,5 @@ fn legal_action(game: *g.Game, action: g.Action) bool {
     game.board.apply_action(action);
     defer game.board.undo_action(action);
 
-    return !is_self_mate(game);
+    return !is_in_check(game);
 }
