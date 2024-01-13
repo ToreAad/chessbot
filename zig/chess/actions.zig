@@ -4,35 +4,8 @@ const s = @import("square.zig");
 const p = @import("position.zig");
 const r = @import("rules.zig");
 
-const ActionClassifications = enum {
-    Capture,
-    Support,
-    Threat,
-    Vulnerable,
-    Fork,
-    Pin,
-    Skewer,
-    Check,
-    Checkmate,
-    Remis,
-};
-
-const ActionClassification = union(ActionClassifications) {
-    Capture: g.Action,
-    Support: g.Action,
-    Threat: g.Action,
-    Vulnerable: g.Action,
-    Fork: g.Action,
-    Pin: g.Action,
-    Skewer: g.Action,
-    Check: g.Action,
-    Checkmate: g.Action,
-    Remis: g.Action,
-};
-
 const ArrayList = std.ArrayList;
 const ActionList = ArrayList(g.Action);
-const ActionClassificationList = ArrayList(ActionClassification);
 
 fn get_legal_actions_pawn(game: *g.Game, pos: p.Position, list: *ActionList) void {
     const rank_diffs = if (game.active_color == s.Colors.White) []i8{ 1, 1, 1, 2 } else []i8{ -1, -1, -1, -2 };
@@ -206,8 +179,25 @@ fn get_legal_actions_king(game: *g.Game, pos: p.Position, list: *ActionList) voi
     }
 }
 
+fn get_legal_actions_position(game: *g.Game, pos: p.Position, list: *ActionList) void {
+    const square = game.board.get_square_at(pos);
+    if (square.is_empty()) {
+        return;
+    }
+    if (square.piece.color != game.active_color) {
+        return;
+    }
+    switch (square.piece) {
+        .Pawn => get_legal_actions_pawn(game, pos, list),
+        .Rook => get_legal_actions_rook(game, pos, list),
+        .Knight => get_legal_actions_knight(game, pos, list),
+        .Bishop => get_legal_actions_bishop(game, pos, list),
+        .Queen => get_legal_actions_queen(game, pos, list),
+        .King => get_legal_actions_king(game, pos, list),
+    }
+}
+
 fn get_legal_actions(game: *g.Game, list: *ActionList) void {
-    const active_player = game.active_player;
     const resign_action = g.Action{
         .type = g.ActionType.Resign,
     };
@@ -218,49 +208,12 @@ fn get_legal_actions(game: *g.Game, list: *ActionList) void {
     while (file < 8 and unvisited_pieces > 0) : (file += 1) {
         var rank = 0;
         while (rank < 8 and unvisited_pieces > 0) : (rank += 1) {
-            const pos = s.Square{
+            const pos = p.Position{
                 .file = file,
                 .rank = rank,
             };
-            const square = game.board.get_square_at(pos);
-            if (square.is_empty()) {
-                continue;
-            }
-            if (square.piece.color != active_player) {
-                continue;
-            }
+            get_legal_actions_position(game, pos, list);
             unvisited_pieces -= 1;
-            switch (square.piece) {
-                .Pawn => get_legal_actions_pawn(game, pos, list),
-                .Rook => get_legal_actions_rook(game, pos, list),
-                .Knight => get_legal_actions_knight(game, pos, list),
-                .Bishop => get_legal_actions_bishop(game, pos, list),
-                .Queen => get_legal_actions_queen(game, pos, list),
-                .King => get_legal_actions_king(game, pos, list),
-            }
-        }
-    }
-}
-
-fn classify_capture(game: *g.Game, action: g.Action, classification_list: *ActionClassificationList) void {
-    const square = game.board.get_square_at(action.to);
-    if (square.is_empty()) {
-        return;
-    }
-    if (square.piece.color == game.active_color) {
-        return;
-    }
-    const classification = ActionClassification{
-        .Capture = action,
-    };
-    try classification_list.append(classification);
-}
-
-fn classify_actions(game: *g.Game, list: *ActionList, classification_list: *ActionClassificationList) void {
-    var iter = list.iterator();
-    while (iter.next()) |action| {
-        if (action.type == g.ActionType.Move) {
-            classify_capture(game, action, classification_list);
         }
     }
 }

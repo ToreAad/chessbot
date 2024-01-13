@@ -4,14 +4,14 @@ pub const Colors = enum(u32) {
 };
 
 pub const SquareFlags = enum(u32) {
-    Black = 0b10,
-    Pawn = 0b100,
-    Knight = 0b1000,
-    Bishop = 0b10000,
-    Rook = 0b100000,
-    Queen = 0b1000000,
-    King = 0b10000000,
-    Moved = 0b100000000,
+    Black = 1 << 2,
+    Pawn = 1 << 3,
+    Knight = 1 << 4,
+    Bishop = 1 << 5,
+    Rook = 1 << 6,
+    Queen = 1 << 7,
+    King = 1 << 8,
+    Moved = 1 << 9,
 };
 
 pub const Piece = enum(u32) {

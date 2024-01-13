@@ -1,3 +1,6 @@
+const std = @import("std");
+const testing = std.testing;
+
 pub const Position = struct {
     file: u8,
     rank: u8,
@@ -35,3 +38,15 @@ pub const B_K2 = Position{ .file = 4, .rank = 6 };
 pub const B_KB2 = Position{ .file = 5, .rank = 6 };
 pub const B_KN2 = Position{ .file = 6, .rank = 6 };
 pub const B_KR2 = Position{ .file = 7, .rank = 6 };
+
+fn add(a: Position, b: Position) Position {
+    return Position{
+        .file = a.file + b.file,
+        .rank = a.rank + b.rank,
+    };
+}
+
+test "add" {
+    try testing.expectEqual(add(W_QR1, W_QR2).file, 0);
+    try testing.expectEqual(add(W_QR1, W_QR2).rank, 1);
+}
