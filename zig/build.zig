@@ -6,10 +6,12 @@ fn build_chess_lib(b: *std.Build, target: std.zig.CrossTarget, optimize: std.bui
     const test_step = b.step("test", "Run chess unit tests");
 
     const chess_files = [_][]const u8{
+        "colors",
+        "pieces",
         "position",
         "square",
-        // "board",
-        // "game",
+        "board",
+        "game",
         // "rules",
         // "actions",
         // "tactics",
