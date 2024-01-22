@@ -120,15 +120,15 @@ pub const SquareData = struct {
         self.state = self.state | @intFromEnum(SquareFlags.Black);
     }
 
-    pub fn is_black(self: *SquareData) bool {
+    pub fn is_black(self: *const SquareData) bool {
         return (self.state & @intFromEnum(SquareFlags.Black)) > 0;
     }
 
-    pub fn is_white(self: *SquareData) bool {
+    pub fn is_white(self: *const SquareData) bool {
         return (self.state & @intFromEnum(SquareFlags.Black)) == 0;
     }
 
-    pub fn get_color(self: *SquareData) Colors {
+    pub fn get_color(self: *const SquareData) Colors {
         return if (self.is_black()) Colors.Black else Colors.White;
     }
 
@@ -140,11 +140,11 @@ pub const SquareData = struct {
         self.state = self.state ^ @intFromEnum(SquareFlags.Moved);
     }
 
-    pub fn is_moved(self: *SquareData) bool {
+    pub fn is_moved(self: *const SquareData) bool {
         return (self.state & @intFromEnum(SquareFlags.Moved)) > 0;
     }
 
-    pub fn get_piece(self: *SquareData) error{InvalidState}!Piece {
+    pub fn get_piece(self: *const SquareData) error{InvalidState}!Piece {
         const val = self.state & PieceBand;
         return pieceFromInt(val);
     }
@@ -154,11 +154,11 @@ pub const SquareData = struct {
         self.state = self.state | intFromPiece(piece);
     }
 
-    pub fn is_occupied(self: *SquareData) bool {
+    pub fn is_occupied(self: *const SquareData) bool {
         return self.state > 0;
     }
 
-    pub fn is_empty(self: *SquareData) bool {
+    pub fn is_empty(self: *const SquareData) bool {
         return self.state == 0;
     }
 
@@ -170,8 +170,47 @@ pub const SquareData = struct {
         self.state = state;
     }
 
-    pub fn copy_from(self: *SquareData, other: *SquareData) void {
+    pub fn copy_from(self: *SquareData, other: *const SquareData) void {
         self.state = other.state;
+    }
+
+    pub fn format(
+        self: *const SquareData,
+        comptime fmt: []const u8,
+        options: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        _ = fmt;
+        _ = options;
+
+        if (self.is_empty()) {
+            try writer.writeAll(".");
+            return;
+        }
+
+        const piece = self.get_piece() catch return;
+
+        if (self.get_color() == Colors.White) {
+            switch (piece) {
+                Piece.Rook => try writer.writeAll("R"),
+                Piece.Knight => try writer.writeAll("N"),
+                Piece.Bishop => try writer.writeAll("B"),
+                Piece.Queen => try writer.writeAll("Q"),
+                Piece.King => try writer.writeAll("K"),
+                Piece.Pawn => try writer.writeAll("P"),
+                else => unreachable,
+            }
+        } else {
+            switch (piece) {
+                Piece.Rook => try writer.writeAll("r"),
+                Piece.Knight => try writer.writeAll("n"),
+                Piece.Bishop => try writer.writeAll("b"),
+                Piece.Queen => try writer.writeAll("q"),
+                Piece.King => try writer.writeAll("k"),
+                Piece.Pawn => try writer.writeAll("p"),
+                else => unreachable,
+            }
+        }
     }
 };
 

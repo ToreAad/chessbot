@@ -4,7 +4,20 @@ const testing = std.testing;
 pub const Position = struct {
     file: u8,
     rank: u8,
+
+    pub fn equals(self: *const Position, other: *const Position) bool {
+        return self.file == other.file and self.rank == other.rank;
+    }
 };
+
+pub const A = 0;
+pub const B = 1;
+pub const C = 2;
+pub const D = 3;
+pub const E = 4;
+pub const F = 5;
+pub const G = 6;
+pub const H = 7;
 
 pub const W_QR1 = Position{ .file = 0, .rank = 0 };
 pub const W_QN1 = Position{ .file = 1, .rank = 0 };

@@ -1,3 +1,12 @@
+const std = @import("std");
+const testing = std.testing;
+const po = @import("position.zig");
+const Piece = @import("pieces.zig").Piece;
+const Colors = @import("colors.zig").Colors;
+const SquareData = @import("square.zig").SquareData;
+const Position = @import("position.zig").Position;
+const Game = @import("game.zig").Game;
+
 const g = @import("game.zig");
 const s = @import("square.zig");
 const p = @import("position.zig");
@@ -434,3 +443,57 @@ fn legal_action(game: *g.Game, action: g.Action) bool {
 
     return !is_in_check(game);
 }
+
+test "legal move pawn" {}
+
+test "legal move pawn capture" {}
+
+test "not legal move pawn" {}
+
+test "legal move knight" {}
+
+test "legal move knight capture" {}
+
+test "not legal move knight" {}
+
+test "legal move bishop" {}
+
+test "legal move bishop capture" {}
+
+test "not legal move bishop" {}
+
+test "legal move rook" {}
+
+test "legal move rook capture" {}
+
+test "not legal move rook" {}
+
+test "legal move queen" {}
+
+test "legal move queen capture" {}
+
+test "not legal move queen" {}
+
+test "legal move king" {}
+
+test "legal move king capture" {}
+
+test "not legal move king" {}
+
+test "legal castle" {}
+
+test "not legal castle" {}
+
+test "legal en passant" {}
+
+test "not legal en passant" {}
+
+test "legal promotion" {}
+
+test "king move self mate illegal" {}
+
+test "pawn move self mate illegal" {}
+
+test "castle self mate illegal" {}
+
+test "cant move pawn if in check" {}

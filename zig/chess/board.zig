@@ -11,12 +11,104 @@ pub const Square = struct {
     color: Colors,
     piece: Piece,
     moved: bool,
+
+    pub fn format(
+        self: *const Square,
+        comptime fmt: []const u8,
+        options: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        _ = fmt;
+        _ = options;
+
+        if (self.empty) {
+            try writer.print(" . ");
+            return;
+        }
+
+        if (self.color == Colors.White) {
+            switch (self.piece) {
+                Piece.Rook => try writer.print("R"),
+                Piece.Knight => try writer.print("N"),
+                Piece.Bishop => try writer.print("B"),
+                Piece.Queen => try writer.print("Q"),
+                Piece.King => try writer.print("K"),
+                Piece.Pawn => try writer.print("P"),
+                else => unreachable,
+            }
+        } else {
+            switch (self.piece) {
+                Piece.Rook => try writer.print("r"),
+                Piece.Knight => try writer.print("n"),
+                Piece.Bishop => try writer.print("b"),
+                Piece.Queen => try writer.print("q"),
+                Piece.King => try writer.print("k"),
+                Piece.Pawn => try writer.print("p"),
+                else => unreachable,
+            }
+        }
+    }
 };
+
+fn state_to_square(state: SquareData) !Square {
+    const color = state.get_color();
+    const piece = state.get_piece() catch return error.Corrupted;
+    const moved = state.is_moved();
+    const empty = state.is_empty();
+    return Square{
+        .color = color,
+        .piece = piece,
+        .moved = moved,
+        .empty = empty,
+    };
+}
+
+fn square_to_state(square: Square) SquareData {
+    var square_data = SquareData{};
+    square_data.set_color(square.color);
+    square_data.set_piece(square.piece);
+    if (square.moved) {
+        square_data.set_moved();
+    }
+    return square_data;
+}
 
 const BoardError = error{
     NotFound,
     Corrupted,
+    ParseError,
 };
+
+pub const BASIC_BOARD =
+    \\ RNBQKBNR
+    \\ PPPPPPPP
+    \\ ........
+    \\ ........
+    \\ ........
+    \\ ........
+    \\ pppppppp
+    \\ rnbqkbnr
+;
+
+fn char_to_square(maybe_square: u8) BoardError!Square {
+    const state = switch (maybe_square) {
+        'R' => return Square{ .empty = false, .moved = false, .piece = Piece.Rook, .color = Colors.White },
+        'N' => return Square{ .empty = false, .moved = false, .piece = Piece.Knight, .color = Colors.White },
+        'B' => return Square{ .empty = false, .moved = false, .piece = Piece.Bishop, .color = Colors.White },
+        'Q' => return Square{ .empty = false, .moved = false, .piece = Piece.Queen, .color = Colors.White },
+        'K' => return Square{ .empty = false, .moved = false, .piece = Piece.King, .color = Colors.White },
+        'P' => return Square{ .empty = false, .moved = false, .piece = Piece.Pawn, .color = Colors.White },
+        'r' => return Square{ .empty = false, .moved = false, .piece = Piece.Rook, .color = Colors.Black },
+        'n' => return Square{ .empty = false, .moved = false, .piece = Piece.Knight, .color = Colors.Black },
+        'b' => return Square{ .empty = false, .moved = false, .piece = Piece.Bishop, .color = Colors.Black },
+        'q' => return Square{ .empty = false, .moved = false, .piece = Piece.Queen, .color = Colors.Black },
+        'k' => return Square{ .empty = false, .moved = false, .piece = Piece.King, .color = Colors.Black },
+        'p' => return Square{ .empty = false, .moved = false, .piece = Piece.Pawn, .color = Colors.Black },
+        '.' => return Square{ .empty = true, .moved = false, .piece = Piece.None, .color = Colors.White },
+        else => return error.Corrupted,
+    };
+    _ = state;
+}
 
 pub const Board = struct {
     pieces: [8][8]SquareData = [8][8]SquareData{
@@ -30,21 +122,12 @@ pub const Board = struct {
         [8]SquareData{ SquareData{}, SquareData{}, SquareData{}, SquareData{}, SquareData{}, SquareData{}, SquareData{}, SquareData{} },
     },
 
-    fn get_square_at(self: *Board, pos: Position) BoardError!Square {
-        var state = self.pieces[pos.file][pos.rank];
-        const color = state.get_color();
-        const piece = state.get_piece() catch return error.Corrupted;
-        const moved = state.is_moved();
-        const empty = state.is_empty();
-        return Square{
-            .color = color,
-            .piece = piece,
-            .moved = moved,
-            .empty = empty,
-        };
+    pub fn get_square_at(self: *const Board, pos: Position) BoardError!Square {
+        const state = self.pieces[pos.file][pos.rank];
+        return state_to_square(state);
     }
 
-    pub fn get_state_at(self: *Board, pos: Position) SquareData {
+    pub fn get_state_at(self: *const Board, pos: Position) SquareData {
         return self.pieces[pos.file][pos.rank];
     }
 
@@ -75,13 +158,15 @@ pub const Board = struct {
         self.pieces[pos.file][pos.rank] = state;
     }
 
-    fn get_king_square(self: *Board, color: Colors) BoardError!Position {
+    fn get_king_square(self: *const Board, color: Colors) BoardError!Position {
         var file: u8 = 0;
         while (file < 8) : (file += 1) {
             var rank: u8 = 0;
             while (rank < 8) : (rank += 1) {
                 const state = self.pieces[file][rank];
-                if (state.get_piece() == Piece.King and state.get_color() == color) {
+                const piece = state.get_piece() catch return error.Corrupted;
+                const piece_color = state.get_color();
+                if (piece == Piece.King and piece_color == color) {
                     return Position{ .file = file, .rank = rank };
                 }
             }
@@ -89,79 +174,75 @@ pub const Board = struct {
         return error.NotFound;
     }
 
-    fn set_up(board: *Board) void {
+    pub fn set_up_from_string(board: *Board, board_string: []const u8) BoardError!void {
+        // Board string looks like this:
+        // RNBQKBNR
+        // PPPPPPPP
+        // ........
+        // ........
+        // ........
+        // ........
+        // pppppppp
+        // rnbqkbnr
+
         var file: u8 = 0;
-        while (file < 8) : (file += 1) {
-            var rank: u8 = 0;
-            while (rank < 8) : (rank += 1) {
-                board.pieces[file][rank] = SquareData{};
+        var rank: u8 = 0;
+        for (board_string) |maybe_square| {
+            if (maybe_square == ' ' or maybe_square == '\n' or maybe_square == '\r' or maybe_square == '\t') {
+                continue;
+            }
+            if (rank == 8) {
+                return error.ParseError;
+            }
+            const square = try char_to_square(maybe_square);
+            const state = square_to_state(square);
+
+            board.set_state_at(Position{ .file = file, .rank = rank }, state);
+
+            file += 1;
+            if (file == 8) {
+                file = 0;
+                rank += 1;
             }
         }
+    }
 
-        board.set_piece_at(po.W_QR1, Piece.Rook);
-        board.set_piece_at(po.W_QN1, Piece.Knight);
-        board.set_piece_at(po.W_QB1, Piece.Bishop);
-        board.set_piece_at(po.W_Q1, Piece.Queen);
-        board.set_piece_at(po.W_K1, Piece.King);
-        board.set_piece_at(po.W_KB1, Piece.Bishop);
-        board.set_piece_at(po.W_KN1, Piece.Knight);
-        board.set_piece_at(po.W_KR1, Piece.Rook);
-        board.set_piece_at(po.W_QR2, Piece.Pawn);
-        board.set_piece_at(po.W_QN2, Piece.Pawn);
-        board.set_piece_at(po.W_QB2, Piece.Pawn);
-        board.set_piece_at(po.W_Q2, Piece.Pawn);
-        board.set_piece_at(po.W_KB2, Piece.Pawn);
-        board.set_piece_at(po.W_KN2, Piece.Pawn);
-        board.set_piece_at(po.W_KR2, Piece.Pawn);
-        board.set_piece_at(po.W_K2, Piece.Pawn);
-        board.set_color_at(po.W_QR1, Colors.White);
-        board.set_color_at(po.W_QN1, Colors.White);
-        board.set_color_at(po.W_QB1, Colors.White);
-        board.set_color_at(po.W_Q1, Colors.White);
-        board.set_color_at(po.W_K1, Colors.White);
-        board.set_color_at(po.W_KB1, Colors.White);
-        board.set_color_at(po.W_KN1, Colors.White);
-        board.set_color_at(po.W_KR1, Colors.White);
-        board.set_color_at(po.W_QR2, Colors.White);
-        board.set_color_at(po.W_QN2, Colors.White);
-        board.set_color_at(po.W_QB2, Colors.White);
-        board.set_color_at(po.W_Q2, Colors.White);
-        board.set_color_at(po.W_KB2, Colors.White);
-        board.set_color_at(po.W_KN2, Colors.White);
-        board.set_color_at(po.W_KR2, Colors.White);
-        board.set_color_at(po.W_K2, Colors.White);
-        board.set_piece_at(po.B_QR1, Piece.Rook);
-        board.set_piece_at(po.B_QN1, Piece.Knight);
-        board.set_piece_at(po.B_QB1, Piece.Bishop);
-        board.set_piece_at(po.B_Q1, Piece.Queen);
-        board.set_piece_at(po.B_K1, Piece.King);
-        board.set_piece_at(po.B_KB1, Piece.Bishop);
-        board.set_piece_at(po.B_KN1, Piece.Knight);
-        board.set_piece_at(po.B_KR1, Piece.Rook);
-        board.set_piece_at(po.B_QR2, Piece.Pawn);
-        board.set_piece_at(po.B_QN2, Piece.Pawn);
-        board.set_piece_at(po.B_QB2, Piece.Pawn);
-        board.set_piece_at(po.B_Q2, Piece.Pawn);
-        board.set_piece_at(po.B_KB2, Piece.Pawn);
-        board.set_piece_at(po.B_KN2, Piece.Pawn);
-        board.set_piece_at(po.B_KR2, Piece.Pawn);
-        board.set_piece_at(po.B_K2, Piece.Pawn);
-        board.set_color_at(po.B_QR1, Colors.Black);
-        board.set_color_at(po.B_QN1, Colors.Black);
-        board.set_color_at(po.B_QB1, Colors.Black);
-        board.set_color_at(po.B_Q1, Colors.Black);
-        board.set_color_at(po.B_K1, Colors.Black);
-        board.set_color_at(po.B_KB1, Colors.Black);
-        board.set_color_at(po.B_KN1, Colors.Black);
-        board.set_color_at(po.B_KR1, Colors.Black);
-        board.set_color_at(po.B_QR2, Colors.Black);
-        board.set_color_at(po.B_QN2, Colors.Black);
-        board.set_color_at(po.B_QB2, Colors.Black);
-        board.set_color_at(po.B_Q2, Colors.Black);
-        board.set_color_at(po.B_KB2, Colors.Black);
-        board.set_color_at(po.B_KN2, Colors.Black);
-        board.set_color_at(po.B_KR2, Colors.Black);
-        board.set_color_at(po.B_K2, Colors.Black);
+    pub fn format(
+        self: *const Board,
+        comptime fmt: []const u8,
+        options: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        _ = fmt;
+        _ = options;
+
+        for (0..7) |i| {
+            try writer.print("{s}{s}{s}{s}{s}{s}{s}{s}\n", .{
+                self.pieces[0][i],
+                self.pieces[1][i],
+                self.pieces[2][i],
+                self.pieces[3][i],
+                self.pieces[4][i],
+                self.pieces[5][i],
+                self.pieces[6][i],
+                self.pieces[7][i],
+            });
+        }
+
+        try writer.print("{s}{s}{s}{s}{s}{s}{s}{s}", .{
+            self.pieces[0][7],
+            self.pieces[1][7],
+            self.pieces[2][7],
+            self.pieces[3][7],
+            self.pieces[4][7],
+            self.pieces[5][7],
+            self.pieces[6][7],
+            self.pieces[7][7],
+        });
+    }
+
+    pub fn set_up(board: *Board) void {
+        board.set_up_from_string(BASIC_BOARD) catch unreachable;
     }
 };
 
@@ -289,6 +370,6 @@ test "Get king square" {
     };
     for (test_cases) |test_case| {
         const pos = try board.get_king_square(test_case.color);
-        try testing.expect(pos == test_case.pos);
+        try testing.expect(pos.equals(&test_case.pos));
     }
 }
