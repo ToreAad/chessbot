@@ -158,7 +158,7 @@ pub const Board = struct {
         self.pieces[pos.file][pos.rank] = state;
     }
 
-    fn get_king_square(self: *const Board, color: Colors) BoardError!Position {
+    pub fn get_king_square(self: *const Board, color: Colors) BoardError!Position {
         var file: u8 = 0;
         while (file < 8) : (file += 1) {
             var rank: u8 = 0;

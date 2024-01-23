@@ -8,12 +8,12 @@ const Colors = @import("colors.zig").Colors;
 const SquareData = @import("square.zig").SquareData;
 const Position = @import("position.zig").Position;
 
-const MoveInfo = struct {
+pub const MoveInfo = struct {
     from: Position,
     to: Position,
 };
 
-const Actions = enum {
+pub const Actions = enum {
     Start,
     Move,
     Castle,
@@ -22,22 +22,22 @@ const Actions = enum {
     Resign,
 };
 
-const CastleInfo = struct {
+pub const CastleInfo = struct {
     color: Colors,
     king_side: bool,
 };
 
-const EnPassantInfo = struct {
+pub const EnPassantInfo = struct {
     target: Position,
     move: MoveInfo,
 };
 
-const PromotionInfo = struct {
+pub const PromotionInfo = struct {
     piece: Piece,
     move: MoveInfo,
 };
 
-const Action = union(Actions) {
+pub const Action = union(Actions) {
     Start: void,
     Move: MoveInfo,
     Castle: CastleInfo,
@@ -46,29 +46,29 @@ const Action = union(Actions) {
     Resign: void,
 };
 
-const RevertMoveInfo = struct {
+pub const RevertMoveInfo = struct {
     to_state: SquareData,
     from_state: SquareData,
     action: MoveInfo,
 };
 
-const RevertCastleInfo = struct {
+pub const RevertCastleInfo = struct {
     action: CastleInfo,
 };
 
-const RevertEnPassantInfo = struct {
+pub const RevertEnPassantInfo = struct {
     target_state: SquareData,
     from_state: SquareData,
     action: EnPassantInfo,
 };
 
-const RevertPromotionInfo = struct {
+pub const RevertPromotionInfo = struct {
     to_state: SquareData,
     from_state: SquareData,
     action: PromotionInfo,
 };
 
-const RevertAction = union(Actions) {
+pub const RevertAction = union(Actions) {
     Start: void,
     Move: RevertMoveInfo,
     Castle: RevertCastleInfo,
@@ -77,13 +77,13 @@ const RevertAction = union(Actions) {
     Resign: void,
 };
 
-const Game = struct {
+pub const Game = struct {
     board: Board = Board{},
     active_color: Colors = Colors.White,
     last_action: Action = Action.Start,
     allocator: *std.mem.Allocator,
 
-    fn set_up(game: *Game) void {
+    pub fn set_up(game: *Game) void {
         game.board.set_up();
     }
 
