@@ -81,10 +81,14 @@ pub const Game = struct {
     board: Board = Board{},
     active_color: Colors = Colors.White,
     last_action: Action = Action.Start,
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
 
     pub fn set_up(game: *Game) void {
         game.board.set_up();
+    }
+
+    pub fn flip_player(game: *Game) void {
+        game.active_color = if (game.active_color == Colors.White) Colors.Black else Colors.White;
     }
 
     fn apply_move(game: *Game, move: MoveInfo) RevertAction {
@@ -170,6 +174,7 @@ pub const Game = struct {
 
     pub fn apply_action(game: *Game, action: Action) RevertAction {
         defer game.switch_active_color();
+        game.last_action = action;
         switch (action) {
             Action.Move => {
                 const move = action.Move;
@@ -211,17 +216,25 @@ pub const Game = struct {
             if (king_side) {
                 game.board.move_piece(po.W_KN1, po.W_K1);
                 game.board.move_piece(po.W_KB1, po.W_KR1);
+                game.board.set_unmoved(po.W_K1);
+                game.board.set_unmoved(po.W_KR1);
             } else {
                 game.board.move_piece(po.W_QN1, po.W_K1);
                 game.board.move_piece(po.W_Q1, po.W_QR1);
+                game.board.set_unmoved(po.W_K1);
+                game.board.set_unmoved(po.W_QR1);
             }
         } else {
             if (king_side) {
                 game.board.move_piece(po.B_KN1, po.B_K1);
                 game.board.move_piece(po.B_KB1, po.B_KR1);
+                game.board.set_unmoved(po.B_K1);
+                game.board.set_unmoved(po.B_KR1);
             } else {
                 game.board.move_piece(po.B_QN1, po.B_K1);
                 game.board.move_piece(po.B_Q1, po.B_QR1);
+                game.board.set_unmoved(po.B_K1);
+                game.board.set_unmoved(po.B_QR1);
             }
         }
     }
@@ -246,7 +259,7 @@ pub const Game = struct {
         game.board.set_state_at(to, revert_action.to_state);
     }
 
-    fn undo_action(game: *Game, revert_action: RevertAction) void {
+    pub fn undo_action(game: *Game, revert_action: RevertAction) void {
         defer game.switch_active_color();
         switch (revert_action) {
             Action.Move => {
@@ -272,8 +285,8 @@ pub const Game = struct {
 };
 
 test "game init" {
-    var allocator = std.heap.page_allocator;
-    var game = Game{ .allocator = &allocator };
+    const allocator = std.heap.page_allocator;
+    var game = Game{ .allocator = allocator };
     try testing.expect(game.active_color == Colors.White);
     try testing.expect(game.last_action == Action.Start);
     game.set_up();
@@ -282,8 +295,8 @@ test "game init" {
 }
 
 test "game apply move" {
-    var allocator = std.heap.page_allocator;
-    var game = Game{ .allocator = &allocator };
+    const allocator = std.heap.page_allocator;
+    var game = Game{ .allocator = allocator };
     game.set_up();
     const from = Position{ .file = 4, .rank = 1 };
     const from_square_initial = try game.board.get_square_at(from);
@@ -310,8 +323,8 @@ test "game apply move" {
 }
 
 fn test_apply_move_capture(board_setup: *const [71:0]u8, expected_board_final: *const [71:0]u8, action: Action) !void {
-    var allocator = std.heap.page_allocator;
-    var game = Game{ .allocator = &allocator };
+    const allocator = std.heap.page_allocator;
+    var game = Game{ .allocator = allocator };
 
     try game.board.set_up_from_string(board_setup);
 

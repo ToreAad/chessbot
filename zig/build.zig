@@ -13,18 +13,20 @@ fn build_chess_lib(b: *std.Build, target: std.zig.CrossTarget, optimize: std.bui
         "board",
         "game",
         "rules",
-        // "actions",
-        // "tactics",
-        // "agent",
-        // "chess",
+        "actions",
+        "score",
+        "agent",
+        "chess",
     };
+
+    const unoptimized = b.standardOptimizeOption(.{ .preferred_optimize_mode = .Debug });
 
     inline for (chess_files) |file| {
         const chess_unit_tests = b.addTest(.{
             .name = file ++ "_test",
             .root_source_file = .{ .path = "chess/" ++ file ++ ".zig" },
             .target = target,
-            .optimize = optimize,
+            .optimize = unoptimized,
         });
 
         // install the unit test executables

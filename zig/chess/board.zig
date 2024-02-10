@@ -146,6 +146,12 @@ pub const Board = struct {
         self.pieces[from.file][from.rank] = SquareData{};
     }
 
+    pub fn set_unmoved(self: *Board, pos: Position) void {
+        var state = self.pieces[pos.file][pos.rank];
+        state.set_unmoved();
+        self.pieces[pos.file][pos.rank] = state;
+    }
+
     pub fn set_piece_at(self: *Board, pos: Position, piece: Piece) void {
         var state = self.pieces[pos.file][pos.rank];
         state.set_piece(piece);
