@@ -18,6 +18,22 @@
             },
         },
         {
+            "name": "Debug chess cli",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/zig-out/bin/chess-cli.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/zig-out/bin",
+            "symbolSearchPath": "${workspaceFolder}/zig-out/bin",
+            "preLaunchTask": "build chess",
+            "environment": [],
+            "externalConsole": false,
+            "logging": {
+                "moduleLoad": false
+            },
+        }, 
+        {
             "name": "Debug rules test",
             "type": "cppvsdbg",
             "request": "launch",

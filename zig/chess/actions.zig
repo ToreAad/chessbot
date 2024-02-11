@@ -35,7 +35,24 @@ fn get_legal_actions_pawn(game: *g.Game, pos: p.Position, list: *ActionList) !vo
         };
         // Check if legal move:
         if (try r.legal_action(game, move_action)) {
-            try list.append(move_action);
+            if (possible_move.rank == 0 or possible_move.rank == 7) {
+                const knight_promotion = g.Action{
+                    .Promotion = g.PromotionInfo{
+                        .move = move_action.Move,
+                        .piece = Piece.Knight,
+                    },
+                };
+                try list.append(knight_promotion);
+                const queen_promotion = g.Action{
+                    .Promotion = g.PromotionInfo{
+                        .move = move_action.Move,
+                        .piece = Piece.Queen,
+                    },
+                };
+                try list.append(queen_promotion);
+            } else {
+                try list.append(move_action);
+            }
         }
     }
 
@@ -471,4 +488,28 @@ test "get legal actions board" {
 
     const expected_actions = 1 + 5 + 7 + 7 + 7;
     try testing.expect(expected_actions == owned_slice.len);
+}
+
+test "get legal actions weird board" {
+    const allocator = std.heap.page_allocator;
+    var game = g.Game{ .allocator = allocator };
+    const board_setup =
+        \\........
+        \\.K......
+        \\........
+        \\........
+        \\.......p
+        \\........
+        \\........
+        \\.......k
+    ;
+    try game.board.set_up_from_string(board_setup);
+
+    var list = ActionList.init(allocator);
+    defer list.deinit();
+    game.active_color = Colors.Black;
+
+    try get_legal_actions_position(&game, p.Position{ .file = 7, .rank = 4 }, &list);
+
+    try testing.expect(list.items.len > 0);
 }

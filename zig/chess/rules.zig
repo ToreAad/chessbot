@@ -376,23 +376,27 @@ fn legal_promotion(game: *g.Game, action: g.PromotionInfo) !bool {
     return true;
 }
 
-fn is_in_check(game: *g.Game, player: Colors) !bool {
+pub fn is_in_check(game: *g.Game, player: Colors) !bool {
     const king_square = try game.board.get_king_square(player);
 
     // check if king is in check from pawn:
-    const pawn_rank = if (player == Colors.White) king_square.rank + 1 else king_square.rank - 1;
-    const pawn_file_diff = [_]i16{ -1, 1 };
-    for (pawn_file_diff) |file_diff| {
-        const pawn_file = king_square.file + file_diff;
-        if (pawn_file < 0 or pawn_file > 7 or pawn_rank < 0 or pawn_rank > 7) {
-            continue;
-        }
-        const pawn_square = try game.board.get_square_at(Position{
-            .rank = pawn_rank,
-            .file = @as(u8, @intCast(pawn_file)),
-        });
-        if (pawn_square.piece == Piece.Pawn and pawn_square.color != player) {
-            return true;
+    if (((player == Colors.White) and king_square.rank < 7) or
+        ((player == Colors.Black) and king_square.rank > 0))
+    {
+        const pawn_rank = if (player == Colors.White) king_square.rank + 1 else king_square.rank - 1;
+        const pawn_file_diff = [_]i16{ -1, 1 };
+        for (pawn_file_diff) |file_diff| {
+            const pawn_file = king_square.file + file_diff;
+            if (pawn_file < 0 or pawn_file > 7 or pawn_rank < 0 or pawn_rank > 7) {
+                continue;
+            }
+            const pawn_square = try game.board.get_square_at(Position{
+                .rank = pawn_rank,
+                .file = @as(u8, @intCast(pawn_file)),
+            });
+            if (pawn_square.piece == Piece.Pawn and pawn_square.color != player) {
+                return true;
+            }
         }
     }
 
@@ -1745,6 +1749,36 @@ test "is in queen check" {
     ,
         Colors.Black,
         true,
+    );
+}
+
+test "is in check where I got overflow" {
+    try check_test_helper(
+        \\....k...
+        \\........
+        \\........
+        \\........
+        \\........
+        \\........
+        \\........
+        \\.....K..
+    ,
+        Colors.White,
+        false,
+    );
+
+    try check_test_helper(
+        \\....k...
+        \\........
+        \\........
+        \\........
+        \\........
+        \\........
+        \\........
+        \\.....K..
+    ,
+        Colors.Black,
+        false,
     );
 }
 

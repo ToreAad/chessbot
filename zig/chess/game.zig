@@ -77,6 +77,15 @@ pub const RevertAction = union(Actions) {
     Resign: void,
 };
 
+const Pieces = struct {
+    Pawn: u32 = 0,
+    Knight: u32 = 0,
+    Bishop: u32 = 0,
+    Rook: u32 = 0,
+    Queen: u32 = 0,
+    King: u32 = 0,
+};
+
 pub const Game = struct {
     board: Board = Board{},
     active_color: Colors = Colors.White,
@@ -89,6 +98,70 @@ pub const Game = struct {
 
     pub fn flip_player(game: *Game) void {
         game.active_color = if (game.active_color == Colors.White) Colors.Black else Colors.White;
+    }
+
+    pub fn is_remis(game: *Game) !bool {
+        var black_pieces = Pieces{};
+        var white_pieces = Pieces{};
+
+        var file: u8 = 0;
+        while (file < 8) : (file += 1) {
+            var rank: u8 = 0;
+            while (rank < 8) : (rank += 1) {
+                const pos = Position{
+                    .file = file,
+                    .rank = rank,
+                };
+                const square = try game.board.get_square_at(pos);
+                if (square.empty) {
+                    continue;
+                }
+                if (square.color == Colors.Black) {
+                    switch (square.piece) {
+                        Piece.Pawn => black_pieces.Pawn += 1,
+                        Piece.Knight => black_pieces.Knight += 1,
+                        Piece.Bishop => black_pieces.Bishop += 1,
+                        Piece.Rook => black_pieces.Rook += 1,
+                        Piece.Queen => black_pieces.Queen += 1,
+                        Piece.King => black_pieces.King += 1,
+                        else => {},
+                    }
+                } else if (square.color == Colors.White) {
+                    switch (square.piece) {
+                        Piece.Pawn => white_pieces.Pawn += 1,
+                        Piece.Knight => white_pieces.Knight += 1,
+                        Piece.Bishop => white_pieces.Bishop += 1,
+                        Piece.Rook => white_pieces.Rook += 1,
+                        Piece.Queen => white_pieces.Queen += 1,
+                        Piece.King => white_pieces.King += 1,
+                        else => {},
+                    }
+                }
+            }
+        }
+
+        if (black_pieces.Queen > 0 or white_pieces.Queen > 0) {
+            return false;
+        }
+        if (black_pieces.Rook > 0 or white_pieces.Rook > 0) {
+            return false;
+        }
+        if (black_pieces.Pawn > 0 or white_pieces.Pawn > 0) {
+            return false;
+        }
+        if (black_pieces.Knight == 2 or white_pieces.Knight == 2) {
+            return false;
+        }
+        if (black_pieces.Bishop == 2 or white_pieces.Bishop == 2) {
+            return false;
+        }
+        if (black_pieces.Knight == 1 and black_pieces.Bishop == 1) {
+            return false;
+        }
+        if (white_pieces.Knight == 1 and white_pieces.Bishop == 1) {
+            return false;
+        }
+        return true;
     }
 
     fn apply_move(game: *Game, move: MoveInfo) RevertAction {

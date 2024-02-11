@@ -62,10 +62,26 @@ fn build_chess_gui(b: *std.Build, target: std.zig.CrossTarget, optimize: std.bui
 
     b.installArtifact(gui_exe);
 
-    const run_step = b.step("run", "Run the chess gui");
+    const run_step = b.step("run-gui", "Run the chess gui");
     const run_cmd = b.addRunArtifact(gui_exe);
     run_step.dependOn(&run_cmd.step);
     return gui_exe;
+}
+
+fn build_chess_cli(b: *std.Build, target: std.zig.CrossTarget, optimize: std.builtin.OptimizeMode) *std.Build.CompileStep {
+    const cli_exe = b.addExecutable(.{
+        .name = "chess-cli",
+        .root_source_file = .{ .path = "chess/chess.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+
+    b.installArtifact(cli_exe);
+
+    const run_step = b.step("run-cli", "Run the chess cli");
+    const run_cmd = b.addRunArtifact(cli_exe);
+    run_step.dependOn(&run_cmd.step);
+    return cli_exe;
 }
 
 fn build_example(b: *std.Build) void {
@@ -165,4 +181,5 @@ pub fn build(b: *std.Build) void {
 
     _ = build_chess_gui(b, target, optimize);
     _ = build_chess_lib(b, target, optimize);
+    _ = build_chess_cli(b, target, optimize);
 }
