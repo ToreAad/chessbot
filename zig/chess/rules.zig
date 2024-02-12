@@ -523,8 +523,8 @@ pub fn legal_action(game: *g.Game, action: g.Action) !bool {
     if (!legal) {
         return false;
     }
-    const revert_action = game.apply_action(action);
-    defer game.undo_action(revert_action);
+    const revert_action = try game.apply_action(action);
+    defer game.undo_action(revert_action.revert_action());
 
     const color = game.active_color.flip();
 
@@ -538,7 +538,7 @@ fn test_legal_action(board_setup: *const [71:0]u8, board_target: *const [71:0]u8
 
     try game.board.set_up_from_string(board_setup);
     try testing.expect(try _legal_action(&game, action));
-    _ = game.apply_action(action);
+    _ = try game.apply_action(action);
 
     var actual_board_final = [_]u8{0} ** 78;
     _ = try std.fmt.bufPrint(&actual_board_final, "{s}", .{game.board});
@@ -558,7 +558,7 @@ fn test_legal_action_black(board_setup: *const [71:0]u8, board_target: *const [7
 
     try game.board.set_up_from_string(board_setup);
     try testing.expect(try _legal_action(&game, action));
-    _ = game.apply_action(action);
+    _ = try game.apply_action(action);
 
     var actual_board_final = [_]u8{0} ** 78;
     _ = try std.fmt.bufPrint(&actual_board_final, "{s}", .{game.board});
@@ -1296,7 +1296,7 @@ test "not legal castle king moved" {
         },
     };
     const move_action = g.Action{ .Move = move_white_king };
-    _ = game.apply_action(move_action);
+    _ = try game.apply_action(move_action);
 
     // move black king
     const move_black_king = g.MoveInfo{
@@ -1310,7 +1310,7 @@ test "not legal castle king moved" {
         },
     };
     const move_action_black = g.Action{ .Move = move_black_king };
-    _ = game.apply_action(move_action_black);
+    _ = try game.apply_action(move_action_black);
 
     // move white king back
     const move_white_king_back = g.MoveInfo{
@@ -1324,7 +1324,7 @@ test "not legal castle king moved" {
         },
     };
     const move_action_white_back = g.Action{ .Move = move_white_king_back };
-    _ = game.apply_action(move_action_white_back);
+    _ = try game.apply_action(move_action_white_back);
 
     // move black king back
     const move_black_king_back = g.MoveInfo{
@@ -1339,7 +1339,7 @@ test "not legal castle king moved" {
     };
 
     const move_action_black_back = g.Action{ .Move = move_black_king_back };
-    _ = game.apply_action(move_action_black_back);
+    _ = try game.apply_action(move_action_black_back);
 
     // try castle
 
@@ -1395,7 +1395,7 @@ test "legal en passant" {
         },
     };
     const move_white_pawn_action = g.Action{ .Move = move_white_pawn };
-    _ = game.apply_action(move_white_pawn_action);
+    _ = try game.apply_action(move_white_pawn_action);
 
     // black pawn en passant
     const en_passant = g.EnPassantInfo{
@@ -1419,7 +1419,7 @@ test "legal en passant" {
 
     try testing.expect(try _legal_action(&game, en_passant_action));
 
-    _ = game.apply_action(en_passant_action);
+    _ = try game.apply_action(en_passant_action);
 
     var actual_board_final = [_]u8{0} ** 78;
     _ = try std.fmt.bufPrint(&actual_board_final, "{s}", .{game.board});
@@ -1471,7 +1471,7 @@ test "not legal en passant" {
         },
     };
     const move_white_pawn_action = g.Action{ .Move = move_white_pawn };
-    _ = game.apply_action(move_white_pawn_action);
+    _ = try game.apply_action(move_white_pawn_action);
 
     // move black king
     const move_black_king = g.MoveInfo{
@@ -1485,7 +1485,7 @@ test "not legal en passant" {
         },
     };
     const move_action_black_king = g.Action{ .Move = move_black_king };
-    _ = game.apply_action(move_action_black_king);
+    _ = try game.apply_action(move_action_black_king);
 
     // move other white pawn
     const move_white_pawn_other = g.MoveInfo{
@@ -1499,7 +1499,7 @@ test "not legal en passant" {
         },
     };
     const move_white_pawn_action_other = g.Action{ .Move = move_white_pawn_other };
-    _ = game.apply_action(move_white_pawn_action_other);
+    _ = try game.apply_action(move_white_pawn_action_other);
 
     // black pawn en passant
     const en_passant = g.EnPassantInfo{

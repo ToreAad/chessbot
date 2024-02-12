@@ -31,9 +31,9 @@ test "random agent" {
     game.set_up();
     var agent = RandomAgent{ .rnd = RndGen.init(0) };
     const action = try agent.get_action(&game);
-    const r1 = game.apply_action(action);
+    const r1 = try game.apply_action(action);
     const second_action = try agent.get_action(&game);
-    const r2 = game.apply_action(second_action);
-    game.undo_action(r2);
-    game.undo_action(r1);
+    const r2 = try game.apply_action(second_action);
+    game.undo_action(r2.revert_action());
+    game.undo_action(r1.revert_action());
 }

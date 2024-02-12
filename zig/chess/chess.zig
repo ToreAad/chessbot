@@ -13,17 +13,6 @@ const ActionList = @import("actions.zig").ActionList;
 
 const RndGen = std.rand.DefaultPrng;
 
-fn has_legal_moves(game: *g.Game, color: Colors) !bool {
-    var action_list = ActionList.init(game.allocator);
-    defer action_list.deinit();
-    if (color != game.active_color) {
-        game.flip_player();
-        defer game.flip_player();
-    }
-    try a.get_legal_actions(game, &action_list);
-    return action_list.items.len > 1;
-}
-
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var game = g.Game{ .allocator = gpa.allocator() };
@@ -51,41 +40,25 @@ pub fn main() !void {
             1 => try black_player.get_action(&game),
             else => unreachable,
         };
-        switch (action) {
-            .Resign => {
-                const is_checked = try r.is_in_check(&game, game.active_color);
-                const can_act = try has_legal_moves(&game, game.active_color);
-                if (is_checked or can_act) {
-                    std.debug.print("\x1b[2J{s} wins\n{}\n", .{ &game.active_color.flip(), &game.board });
-                } else {
-                    std.debug.print("\x1b[2JRemis, game over\n{}\n", .{&game.board});
-                }
+        const game_state = try game.apply_action(action);
+        switch (game_state) {
+            .Checkmate => {
+                std.debug.print("\x1b[2J{} Checkmated - {} wins\n{}\n", .{ &game.active_color, &game.active_color.flip(), &game.board });
                 return;
             },
-            .Move => {
-                _ = game.apply_action(action);
+            .Remis => {
+                std.debug.print("\x1b[2JRemis, game over!\n{}\n", .{&game.board});
+                return;
             },
-            .Castle => {
-                _ = game.apply_action(action);
+            .Resign => {
+                std.debug.print("\x1b[2J{} resigns - {} wins\n{}\n", .{ &game.active_color, &game.active_color.flip(), &game.board });
+                return;
             },
-            .Promotion => {
-                _ = game.apply_action(action);
-            },
-            .EnPassant => {
-                _ = game.apply_action(action);
-            },
-
             else => {
-                _ = game.apply_action(action);
+                std.debug.print("\x1b[2J{s}\n", .{&game.board});
             },
         }
-        std.debug.print("\x1b[2J{s}\n", .{&game.board});
         std.time.sleep(1_000_000);
-        // std.time.sleep(10_000);
-        if (try game.is_remis()) {
-            std.debug.print("Remis, game over\n", .{});
-            break;
-        }
     }
 }
 
@@ -107,20 +80,20 @@ test "winnable" {
                 break;
             },
             .Move => {
-                _ = game.apply_action(action);
+                _ = try game.apply_action(action);
             },
             .Castle => {
-                _ = game.apply_action(action);
+                _ = try game.apply_action(action);
             },
             .Promotion => {
-                _ = game.apply_action(action);
+                _ = try game.apply_action(action);
             },
             .EnPassant => {
-                _ = game.apply_action(action);
+                _ = try game.apply_action(action);
             },
 
             else => {
-                _ = game.apply_action(action);
+                _ = try game.apply_action(action);
             },
         }
         if (try game.is_remis()) {

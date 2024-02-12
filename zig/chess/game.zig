@@ -7,6 +7,10 @@ const Piece = @import("pieces.zig").Piece;
 const Colors = @import("colors.zig").Colors;
 const SquareData = @import("square.zig").SquareData;
 const Position = @import("position.zig").Position;
+const ActionList = @import("actions.zig").ActionList;
+
+const a = @import("actions.zig");
+const r = @import("rules.zig");
 
 pub const MoveInfo = struct {
     from: Position,
@@ -84,6 +88,32 @@ const Pieces = struct {
     Rook: u32 = 0,
     Queen: u32 = 0,
     King: u32 = 0,
+};
+
+const GameStates = enum {
+    Start,
+    InProgress,
+    Remis,
+    Checkmate,
+    Resign,
+};
+
+pub const GameState = union(GameStates) {
+    Start: void,
+    InProgress: RevertAction,
+    Remis: RevertAction,
+    Checkmate: RevertAction,
+    Resign: RevertAction,
+
+    pub fn revert_action(self: GameState) RevertAction {
+        return switch (self) {
+            GameState.Start => RevertAction{ .Start = {} },
+            GameState.InProgress => self.InProgress,
+            GameState.Remis => self.Remis,
+            GameState.Checkmate => self.Checkmate,
+            GameState.Resign => self.Resign,
+        };
+    }
 };
 
 pub const Game = struct {
@@ -245,33 +275,58 @@ pub const Game = struct {
         game.active_color = if (game.active_color == Colors.White) Colors.Black else Colors.White;
     }
 
-    pub fn apply_action(game: *Game, action: Action) RevertAction {
+    fn has_legal_moves(game: *Game, color: Colors) bool {
+        var action_list = ActionList.init(game.allocator);
+        defer action_list.deinit();
+        if (color != game.active_color) {
+            game.flip_player();
+            defer game.flip_player();
+        }
+        a.get_legal_actions(game, &action_list) catch return false;
+        return action_list.items.len > 1;
+    }
+
+    pub fn apply_action(game: *Game, action: Action) !GameState {
         defer game.switch_active_color();
         game.last_action = action;
-        switch (action) {
-            Action.Move => {
+        const revert_action = switch (action) {
+            Action.Move => blk: {
                 const move = action.Move;
-                return game.apply_move(move);
+                break :blk game.apply_move(move);
             },
-            Action.Castle => {
+            Action.Castle => blk: {
                 const info = action.Castle;
-                return game.apply_castle(info);
+                break :blk game.apply_castle(info);
             },
-            Action.EnPassant => {
+            Action.EnPassant => blk: {
                 const enPassantInfo = action.EnPassant;
-                return game.apply_enpassant(enPassantInfo);
+                break :blk game.apply_enpassant(enPassantInfo);
             },
-            Action.Promotion => {
+            Action.Promotion => blk: {
                 const promotionInfo = action.Promotion;
-                return game.apply_promotion(promotionInfo);
+                break :blk game.apply_promotion(promotionInfo);
             },
             Action.Resign => {
-                return RevertAction{ .Resign = {} };
+                const is_checked = try r.is_in_check(game, game.active_color);
+                const can_act = has_legal_moves(game, game.active_color);
+                if (is_checked and !can_act) {
+                    return GameState{ .Checkmate = RevertAction{ .Resign = {} } };
+                } else if (is_checked or can_act) {
+                    return GameState{ .Resign = RevertAction{ .Resign = {} } };
+                } else if (!is_checked and !can_act) {
+                    return GameState{ .Remis = RevertAction{ .Resign = {} } };
+                } else {
+                    unreachable;
+                }
             },
-            Action.Start => {
-                return RevertAction{ .Start = {} };
-            },
+            Action.Start => RevertAction{ .Start = {} },
+        };
+
+        if (try game.is_remis()) {
+            return GameState{ .Remis = revert_action };
         }
+
+        return GameState{ .InProgress = revert_action };
     }
 
     fn undo_move(game: *Game, revert_action: RevertMoveInfo) void {
@@ -401,7 +456,7 @@ fn test_apply_move_capture(board_setup: *const [71:0]u8, expected_board_final: *
 
     try game.board.set_up_from_string(board_setup);
 
-    const revert_action = game.apply_action(action);
+    const revert_action = try game.apply_action(action);
 
     var actual_board_final = [_]u8{0} ** 78;
     _ = try std.fmt.bufPrint(&actual_board_final, "{s}", .{game.board});
@@ -412,7 +467,7 @@ fn test_apply_move_capture(board_setup: *const [71:0]u8, expected_board_final: *
         try testing.expect(expected == actual_board_final[i]);
     }
 
-    game.undo_action(revert_action);
+    game.undo_action(revert_action.revert_action());
 
     var actual_board_undo = [_]u8{0} ** 78;
     _ = try std.fmt.bufPrint(&actual_board_undo, "{s}", .{game.board});
