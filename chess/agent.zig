@@ -23,6 +23,10 @@ pub const RandomAgent = struct {
         const index = self.rnd.random().int(u32) % (action_list.items.len - 1);
         return action_list.items[index + 1];
     }
+
+    pub fn init(self: *RandomAgent) void {
+        self.rnd = RndGen.init(0);
+    }
 };
 
 test "random agent" {

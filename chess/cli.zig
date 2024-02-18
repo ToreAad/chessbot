@@ -25,13 +25,16 @@ pub fn main() !void {
         \\ ........
         \\ ........
         \\ ........
-        \\ ........
+        \\ pppppppp
         \\ rnbqkbnr
     ;
     try game.board.set_up_from_string(board_setup);
 
-    var white_player = agent.RandomAgent{ .rnd = RndGen.init(0) };
-    var black_player = agent.RandomAgent{ .rnd = RndGen.init(0) };
+    var white_player: agent.RandomAgent = undefined;
+    var black_player: agent.RandomAgent = undefined;
+    white_player.init();
+    black_player.init();
+
     std.debug.print("Game started\n", .{});
     std.debug.print("\x1b[2J{s}\n", .{&game.board});
     for (0..5000) |i| {
@@ -67,8 +70,10 @@ test "winnable" {
     var game = g.Game{ .allocator = gpa.allocator() };
     game.set_up();
 
-    var white_player = agent.RandomAgent{ .rnd = RndGen.init(0) };
-    var black_player = agent.RandomAgent{ .rnd = RndGen.init(0) };
+    var white_player: agent.RandomAgent = undefined;
+    var black_player: agent.RandomAgent = undefined;
+    white_player.init();
+    black_player.init();
     for (0..5000) |i| {
         const action = switch (i % 2) {
             0 => try white_player.get_action(&game),

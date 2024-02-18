@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug exe",
+            "name": "Debug Gui",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/zig-out/bin/chess.exe",
+            "program": "${workspaceFolder}/zig-out/bin/chess-gui.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/zig-out/bin",
