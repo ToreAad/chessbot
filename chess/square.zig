@@ -10,9 +10,10 @@ const SquareFlags = enum(u32) {
     Knight = 1 << 4,
     Bishop = 1 << 5,
     Rook = 1 << 6,
-    Queen = 1 << 7,
-    King = 1 << 8,
-    Moved = 1 << 9,
+    UnmovedRook = 1 << 7,
+    Queen = 1 << 8,
+    King = 1 << 9,
+    UnmovedKing = 1 << 10,
 };
 
 const SquareError = error{
@@ -36,11 +37,17 @@ fn pieceFromInt(val: u32) SquareError!Piece {
         @intFromEnum(SquareFlags.Rook) => {
             return Piece.Rook;
         },
+        @intFromEnum(SquareFlags.UnmovedRook) => {
+            return Piece.UnmovedRook;
+        },
         @intFromEnum(SquareFlags.Queen) => {
             return Piece.Queen;
         },
         @intFromEnum(SquareFlags.King) => {
             return Piece.King;
+        },
+        @intFromEnum(SquareFlags.UnmovedKing) => {
+            return Piece.UnmovedKing;
         },
         else => {
             return error.InvalidState;
@@ -62,11 +69,17 @@ fn intFromPiece(piece: Piece) u32 {
         Piece.Rook => {
             return @intFromEnum(SquareFlags.Rook);
         },
+        Piece.UnmovedRook => {
+            return @intFromEnum(SquareFlags.UnmovedRook);
+        },
         Piece.Queen => {
             return @intFromEnum(SquareFlags.Queen);
         },
         Piece.King => {
             return @intFromEnum(SquareFlags.King);
+        },
+        Piece.UnmovedKing => {
+            return @intFromEnum(SquareFlags.UnmovedKing);
         },
         Piece.None => {
             return 0;
@@ -78,7 +91,9 @@ const PieceBand = @intFromEnum(SquareFlags.Pawn) |
     @intFromEnum(SquareFlags.Knight) |
     @intFromEnum(SquareFlags.Bishop) |
     @intFromEnum(SquareFlags.Rook) |
+    @intFromEnum(SquareFlags.UnmovedRook) |
     @intFromEnum(SquareFlags.Queen) |
+    @intFromEnum(SquareFlags.UnmovedKing) |
     @intFromEnum(SquareFlags.King);
 
 test "pieceBand" {
@@ -95,6 +110,8 @@ test "pieceBand" {
     band = band ^ @intFromEnum(SquareFlags.Rook);
     band = band ^ @intFromEnum(SquareFlags.Queen);
     band = band ^ @intFromEnum(SquareFlags.King);
+    band = band ^ @intFromEnum(SquareFlags.UnmovedRook);
+    band = band ^ @intFromEnum(SquareFlags.UnmovedKing);
     try testing.expect(band == 0);
 }
 
@@ -130,18 +147,6 @@ pub const SquareData = struct {
 
     pub fn get_color(self: *const SquareData) Colors {
         return if (self.is_black()) Colors.Black else Colors.White;
-    }
-
-    pub fn set_moved(self: *SquareData) void {
-        self.state = self.state | @intFromEnum(SquareFlags.Moved);
-    }
-
-    pub fn set_unmoved(self: *SquareData) void {
-        self.state = self.state ^ @intFromEnum(SquareFlags.Moved);
-    }
-
-    pub fn is_moved(self: *const SquareData) bool {
-        return (self.state & @intFromEnum(SquareFlags.Moved)) > 0;
     }
 
     pub fn get_piece(self: *const SquareData) error{InvalidState}!Piece {
@@ -193,20 +198,24 @@ pub const SquareData = struct {
         if (self.get_color() == Colors.White) {
             switch (piece) {
                 Piece.Rook => try writer.writeAll("R"),
+                Piece.UnmovedRook => try writer.writeAll("R"),
                 Piece.Knight => try writer.writeAll("N"),
                 Piece.Bishop => try writer.writeAll("B"),
                 Piece.Queen => try writer.writeAll("Q"),
                 Piece.King => try writer.writeAll("K"),
+                Piece.UnmovedKing => try writer.writeAll("K"),
                 Piece.Pawn => try writer.writeAll("P"),
                 else => unreachable,
             }
         } else {
             switch (piece) {
                 Piece.Rook => try writer.writeAll("r"),
+                Piece.UnmovedRook => try writer.writeAll("r"),
                 Piece.Knight => try writer.writeAll("n"),
                 Piece.Bishop => try writer.writeAll("b"),
                 Piece.Queen => try writer.writeAll("q"),
                 Piece.King => try writer.writeAll("k"),
+                Piece.UnmovedKing => try writer.writeAll("k"),
                 Piece.Pawn => try writer.writeAll("p"),
                 else => unreachable,
             }
@@ -238,23 +247,6 @@ test "color" {
     try testing.expect(!state.is_white());
     try testing.expect(state.is_black());
     try testing.expect(state.get_color() == Colors.Black);
-}
-
-test "moved" {
-    var state = SquareData{ .state = 0 };
-    try testing.expect(!state.is_moved());
-
-    state.set_moved();
-    try testing.expect(state.is_moved());
-
-    state.set_unmoved();
-    try testing.expect(!state.is_moved());
-
-    state.set_moved();
-    try testing.expect(state.is_moved());
-
-    state.set_unmoved();
-    try testing.expect(!state.is_moved());
 }
 
 test "piece" {

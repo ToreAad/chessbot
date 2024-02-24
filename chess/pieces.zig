@@ -4,6 +4,8 @@ pub const Piece = enum {
     Knight,
     Bishop,
     Rook,
+    UnmovedRook,
     Queen,
     King,
+    UnmovedKing,
 };

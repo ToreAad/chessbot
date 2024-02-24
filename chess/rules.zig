@@ -101,7 +101,7 @@ fn legal_move_rook(game: *g.Game, action: g.MoveInfo) !bool {
     const from = action.from;
     const to = action.to;
     const from_square = try game.board.get_square_at(from);
-    if (from_square.piece != Piece.Rook) {
+    if (from_square.piece != Piece.Rook and from_square.piece != Piece.UnmovedRook) {
         return false;
     }
 
@@ -206,7 +206,7 @@ fn legal_move_king(game: *g.Game, action: g.MoveInfo) !bool {
     const to = action.to;
     const from_square = try game.board.get_square_at(from);
 
-    if (from_square.piece != Piece.King) {
+    if (from_square.piece != Piece.King and from_square.piece != Piece.UnmovedKing) {
         return false;
     }
 
@@ -255,10 +255,16 @@ fn legal_move(game: *g.Game, action: g.MoveInfo) !bool {
         Piece.Rook => {
             return legal_move_rook(game, action);
         },
+        Piece.UnmovedRook => {
+            return legal_move_rook(game, action);
+        },
         Piece.Queen => {
             return legal_move_queen(game, action);
         },
         Piece.King => {
+            return legal_move_king(game, action);
+        },
+        Piece.UnmovedKing => {
             return legal_move_king(game, action);
         },
         Piece.None => {
@@ -275,19 +281,13 @@ fn legal_castle(game: *g.Game, action: g.CastleInfo) !bool {
 
     const king_square = if (game.active_color == Colors.White) p.W_K1 else p.B_K1;
     const king = try game.board.get_square_at(king_square);
-    if (king.piece != Piece.King) {
-        return false;
-    }
-    if (king.moved) {
+    if (king.piece != Piece.UnmovedKing) {
         return false;
     }
 
     const rook_square = if (action.king_side) p.Position{ .rank = king_square.rank, .file = 7 } else p.Position{ .rank = king_square.rank, .file = 0 };
     const rook = try game.board.get_square_at(rook_square);
-    if (rook.piece != Piece.Rook) {
-        return false;
-    }
-    if (rook.moved) {
+    if (rook.piece != Piece.UnmovedRook) {
         return false;
     }
 
@@ -474,7 +474,7 @@ pub fn is_in_check(game: *g.Game, player: Colors) !bool {
             if (rook_square.color == player) {
                 break;
             }
-            if (rook_square.piece == Piece.Rook or rook_square.piece == Piece.Queen) {
+            if (rook_square.piece == Piece.UnmovedRook or rook_square.piece == Piece.Rook or rook_square.piece == Piece.Queen) {
                 return true;
             }
             if (!rook_square.empty) {
@@ -498,7 +498,7 @@ pub fn is_in_check(game: *g.Game, player: Colors) !bool {
             .rank = @as(u8, @intCast(king_rank)),
             .file = @as(u8, @intCast(king_file)),
         });
-        if (maybe_king_square.piece == Piece.King and maybe_king_square.color != player) {
+        if ((maybe_king_square.piece == Piece.King or maybe_king_square.piece == Piece.UnmovedKing) and maybe_king_square.color != player) {
             return true;
         }
     }

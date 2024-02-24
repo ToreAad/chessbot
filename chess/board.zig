@@ -10,7 +10,6 @@ pub const Square = struct {
     empty: bool,
     color: Colors,
     piece: Piece,
-    moved: bool,
 
     pub fn format(
         self: *const Square,
@@ -53,12 +52,10 @@ pub const Square = struct {
 fn state_to_square(state: SquareData) !Square {
     const color = state.get_color();
     const piece = state.get_piece() catch return error.Corrupted;
-    const moved = state.is_moved();
     const empty = state.is_empty();
     return Square{
         .color = color,
         .piece = piece,
-        .moved = moved,
         .empty = empty,
     };
 }
@@ -67,9 +64,6 @@ fn square_to_state(square: Square) SquareData {
     var square_data = SquareData{};
     square_data.set_color(square.color);
     square_data.set_piece(square.piece);
-    if (square.moved) {
-        square_data.set_moved();
-    }
     return square_data;
 }
 
@@ -92,19 +86,39 @@ pub const BASIC_BOARD =
 
 fn char_to_square(maybe_square: u8) BoardError!Square {
     const state = switch (maybe_square) {
-        'R' => return Square{ .empty = false, .moved = false, .piece = Piece.Rook, .color = Colors.White },
-        'N' => return Square{ .empty = false, .moved = false, .piece = Piece.Knight, .color = Colors.White },
-        'B' => return Square{ .empty = false, .moved = false, .piece = Piece.Bishop, .color = Colors.White },
-        'Q' => return Square{ .empty = false, .moved = false, .piece = Piece.Queen, .color = Colors.White },
-        'K' => return Square{ .empty = false, .moved = false, .piece = Piece.King, .color = Colors.White },
-        'P' => return Square{ .empty = false, .moved = false, .piece = Piece.Pawn, .color = Colors.White },
-        'r' => return Square{ .empty = false, .moved = false, .piece = Piece.Rook, .color = Colors.Black },
-        'n' => return Square{ .empty = false, .moved = false, .piece = Piece.Knight, .color = Colors.Black },
-        'b' => return Square{ .empty = false, .moved = false, .piece = Piece.Bishop, .color = Colors.Black },
-        'q' => return Square{ .empty = false, .moved = false, .piece = Piece.Queen, .color = Colors.Black },
-        'k' => return Square{ .empty = false, .moved = false, .piece = Piece.King, .color = Colors.Black },
-        'p' => return Square{ .empty = false, .moved = false, .piece = Piece.Pawn, .color = Colors.Black },
-        '.' => return Square{ .empty = true, .moved = false, .piece = Piece.None, .color = Colors.White },
+        'R' => return Square{ .empty = false, .piece = Piece.UnmovedRook, .color = Colors.White },
+        'N' => return Square{ .empty = false, .piece = Piece.Knight, .color = Colors.White },
+        'B' => return Square{ .empty = false, .piece = Piece.Bishop, .color = Colors.White },
+        'Q' => return Square{ .empty = false, .piece = Piece.Queen, .color = Colors.White },
+        'K' => return Square{ .empty = false, .piece = Piece.UnmovedKing, .color = Colors.White },
+        'P' => return Square{ .empty = false, .piece = Piece.Pawn, .color = Colors.White },
+        'r' => return Square{ .empty = false, .piece = Piece.UnmovedRook, .color = Colors.Black },
+        'n' => return Square{ .empty = false, .piece = Piece.Knight, .color = Colors.Black },
+        'b' => return Square{ .empty = false, .piece = Piece.Bishop, .color = Colors.Black },
+        'q' => return Square{ .empty = false, .piece = Piece.Queen, .color = Colors.Black },
+        'k' => return Square{ .empty = false, .piece = Piece.UnmovedKing, .color = Colors.Black },
+        'p' => return Square{ .empty = false, .piece = Piece.Pawn, .color = Colors.Black },
+        '.' => return Square{ .empty = true, .piece = Piece.None, .color = Colors.White },
+        else => return error.Corrupted,
+    };
+    _ = state;
+}
+
+fn char_to_moved_square(maybe_square: u8) BoardError!Square {
+    const state = switch (maybe_square) {
+        'R' => return Square{ .empty = false, .piece = Piece.Rook, .color = Colors.White },
+        'N' => return Square{ .empty = false, .piece = Piece.Knight, .color = Colors.White },
+        'B' => return Square{ .empty = false, .piece = Piece.Bishop, .color = Colors.White },
+        'Q' => return Square{ .empty = false, .piece = Piece.Queen, .color = Colors.White },
+        'K' => return Square{ .empty = false, .piece = Piece.King, .color = Colors.White },
+        'P' => return Square{ .empty = false, .piece = Piece.Pawn, .color = Colors.White },
+        'r' => return Square{ .empty = false, .piece = Piece.Rook, .color = Colors.Black },
+        'n' => return Square{ .empty = false, .piece = Piece.Knight, .color = Colors.Black },
+        'b' => return Square{ .empty = false, .piece = Piece.Bishop, .color = Colors.Black },
+        'q' => return Square{ .empty = false, .piece = Piece.Queen, .color = Colors.Black },
+        'k' => return Square{ .empty = false, .piece = Piece.King, .color = Colors.Black },
+        'p' => return Square{ .empty = false, .piece = Piece.Pawn, .color = Colors.Black },
+        '.' => return Square{ .empty = true, .piece = Piece.None, .color = Colors.White },
         else => return error.Corrupted,
     };
     _ = state;
@@ -140,16 +154,9 @@ pub const Board = struct {
     }
 
     pub fn move_piece(self: *Board, from: Position, to: Position) void {
-        var state = self.pieces[from.file][from.rank];
-        state.set_moved();
+        const state = self.pieces[from.file][from.rank];
         self.pieces[to.file][to.rank] = state;
         self.pieces[from.file][from.rank] = SquareData{};
-    }
-
-    pub fn set_unmoved(self: *Board, pos: Position) void {
-        var state = self.pieces[pos.file][pos.rank];
-        state.set_unmoved();
-        self.pieces[pos.file][pos.rank] = state;
     }
 
     pub fn set_piece_at(self: *Board, pos: Position, piece: Piece) void {
@@ -172,7 +179,7 @@ pub const Board = struct {
                 const state = self.pieces[file][rank];
                 const piece = state.get_piece() catch return error.Corrupted;
                 const piece_color = state.get_color();
-                if (piece == Piece.King and piece_color == color) {
+                if ((piece == Piece.King or piece == Piece.UnmovedKing) and piece_color == color) {
                     return Position{ .file = file, .rank = rank };
                 }
             }
@@ -201,6 +208,39 @@ pub const Board = struct {
                 return error.ParseError;
             }
             const square = try char_to_square(maybe_square);
+            const state = square_to_state(square);
+
+            board.set_state_at(Position{ .file = file, .rank = rank }, state);
+
+            file += 1;
+            if (file == 8) {
+                file = 0;
+                rank += 1;
+            }
+        }
+    }
+
+    pub fn set_up_from_string_moved(board: *Board, board_string: []const u8) BoardError!void {
+        // Board string looks like this:
+        // RNBQKBNR
+        // PPPPPPPP
+        // ........
+        // ........
+        // ........
+        // ........
+        // pppppppp
+        // rnbqkbnr
+
+        var file: u8 = 0;
+        var rank: u8 = 0;
+        for (board_string) |maybe_square| {
+            if (maybe_square == ' ' or maybe_square == '\n' or maybe_square == '\r' or maybe_square == '\t') {
+                continue;
+            }
+            if (rank == 8) {
+                return error.ParseError;
+            }
+            const square = try char_to_moved_square(maybe_square);
             const state = square_to_state(square);
 
             board.set_state_at(Position{ .file = file, .rank = rank }, state);
@@ -262,51 +302,48 @@ test "Board init" {
         pos: Position,
         piece: Piece,
         color: Colors,
-        moved: bool,
         empty: bool,
     };
 
     const test_cases = [_]TestCase{
-        TestCase{ .pos = po.W_QR1, .piece = Piece.Rook, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_QN1, .piece = Piece.Knight, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_QB1, .piece = Piece.Bishop, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_Q1, .piece = Piece.Queen, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_K1, .piece = Piece.King, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_KB1, .piece = Piece.Bishop, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_KN1, .piece = Piece.Knight, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_KR1, .piece = Piece.Rook, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_QR2, .piece = Piece.Pawn, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_QN2, .piece = Piece.Pawn, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_QB2, .piece = Piece.Pawn, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_Q2, .piece = Piece.Pawn, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_KB2, .piece = Piece.Pawn, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_KN2, .piece = Piece.Pawn, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_KR2, .piece = Piece.Pawn, .color = Colors.White, .moved = false, .empty = false },
-        TestCase{ .pos = po.W_K2, .piece = Piece.Pawn, .color = Colors.White, .moved = false, .empty = false },
-
-        TestCase{ .pos = po.B_QR1, .piece = Piece.Rook, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_QN1, .piece = Piece.Knight, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_QB1, .piece = Piece.Bishop, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_Q1, .piece = Piece.Queen, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_K1, .piece = Piece.King, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_KB1, .piece = Piece.Bishop, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_KN1, .piece = Piece.Knight, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_KR1, .piece = Piece.Rook, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_QR2, .piece = Piece.Pawn, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_QN2, .piece = Piece.Pawn, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_QB2, .piece = Piece.Pawn, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_Q2, .piece = Piece.Pawn, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_KB2, .piece = Piece.Pawn, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_KN2, .piece = Piece.Pawn, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_KR2, .piece = Piece.Pawn, .color = Colors.Black, .moved = false, .empty = false },
-        TestCase{ .pos = po.B_K2, .piece = Piece.Pawn, .color = Colors.Black, .moved = false, .empty = false },
+        TestCase{ .pos = po.W_QR1, .piece = Piece.UnmovedRook, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_QN1, .piece = Piece.Knight, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_QB1, .piece = Piece.Bishop, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_Q1, .piece = Piece.Queen, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_K1, .piece = Piece.UnmovedKing, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_KB1, .piece = Piece.Bishop, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_KN1, .piece = Piece.Knight, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_KR1, .piece = Piece.UnmovedRook, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_QR2, .piece = Piece.Pawn, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_QN2, .piece = Piece.Pawn, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_QB2, .piece = Piece.Pawn, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_Q2, .piece = Piece.Pawn, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_KB2, .piece = Piece.Pawn, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_KN2, .piece = Piece.Pawn, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_KR2, .piece = Piece.Pawn, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.W_K2, .piece = Piece.Pawn, .color = Colors.White, .empty = false },
+        TestCase{ .pos = po.B_QR1, .piece = Piece.UnmovedRook, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_QN1, .piece = Piece.Knight, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_QB1, .piece = Piece.Bishop, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_Q1, .piece = Piece.Queen, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_K1, .piece = Piece.UnmovedKing, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_KB1, .piece = Piece.Bishop, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_KN1, .piece = Piece.Knight, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_KR1, .piece = Piece.UnmovedRook, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_QR2, .piece = Piece.Pawn, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_QN2, .piece = Piece.Pawn, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_QB2, .piece = Piece.Pawn, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_Q2, .piece = Piece.Pawn, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_KB2, .piece = Piece.Pawn, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_KN2, .piece = Piece.Pawn, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_KR2, .piece = Piece.Pawn, .color = Colors.Black, .empty = false },
+        TestCase{ .pos = po.B_K2, .piece = Piece.Pawn, .color = Colors.Black, .empty = false },
     };
     for (test_cases) |test_case| {
         const state = try board.get_square_at(test_case.pos);
-        try testing.expect(state.piece == test_case.piece);
-        try testing.expect(state.color == test_case.color);
-        try testing.expect(state.moved == test_case.moved);
-        try testing.expect(state.empty == test_case.empty);
+        try testing.expectEqual(test_case.piece, state.piece);
+        try testing.expectEqual(test_case.color, state.color);
+        try testing.expectEqual(test_case.empty, state.empty);
     }
 
     // test empty squares
@@ -327,7 +364,6 @@ test "Board init" {
         try testing.expect(state.piece == Piece.Pawn);
         try testing.expect(state.color == Colors.White);
         try testing.expect(!state.empty);
-        try testing.expect(!state.moved);
     }
 
     file = 0;
@@ -337,7 +373,6 @@ test "Board init" {
         try testing.expect(state.piece == Piece.Pawn);
         try testing.expect(state.color == Colors.Black);
         try testing.expect(!state.empty);
-        try testing.expect(!state.moved);
     }
 }
 
@@ -353,7 +388,6 @@ test "Move pawn" {
     try testing.expect(to_state.piece == Piece.Pawn);
     try testing.expect(to_state.color == Colors.White);
     try testing.expect(!to_state.empty);
-    try testing.expect(to_state.moved);
 
     const from_state = try board.get_square_at(from);
     try testing.expect(from_state.empty);

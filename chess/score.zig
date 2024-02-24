@@ -12,10 +12,12 @@ fn piece_value(piece: Piece) u32 {
     return switch (piece) {
         .Pawn => 1,
         .Rook => 5,
+        .UnmovedRook => 5,
         .Knight => 3,
         .Bishop => 3,
         .Queen => 9,
         .King => 1,
+        .UnmovedKing => 1,
         .None => 0,
     };
 }
@@ -42,7 +44,7 @@ pub fn analyze(game: *g.Game) !Analysis {
             if (square.color != game.active_color) {
                 continue;
             }
-            if (square.piece == Piece.King) {
+            if (square.piece == Piece.King or square.piece == Piece.UnmovedKing) {
                 king_multiplier = 1;
             }
             const value = piece_value(square.piece);

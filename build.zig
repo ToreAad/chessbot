@@ -22,7 +22,7 @@ fn build_chess_tests(b: *std.Build, target: std.zig.CrossTarget) void {
         .{ .name = "score", .path = "chess/score.zig" },
         .{ .name = "agent", .path = "chess/agent.zig" },
         .{ .name = "cli", .path = "cli/cli.zig" },
-        // .{ .name = "gui", .path = "gui/gui.zig" },
+        .{ .name = "gui", .path = "gui/gui.zig" },
     };
 
     const unoptimized = b.standardOptimizeOption(.{ .preferred_optimize_mode = .Debug });

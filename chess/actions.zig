@@ -268,7 +268,10 @@ fn get_legal_actions_king(game: *g.Game, pos: p.Position, list: *ActionList) !vo
             try list.append(move_action);
         }
     }
+}
 
+fn get_legal_actions_unmovedking(game: *g.Game, pos: p.Position, list: *ActionList) !void {
+    try get_legal_actions_king(game, pos, list);
     // Castling
     const king_side_castle = g.Action{ .Castle = g.CastleInfo{
         .color = game.active_color,
@@ -298,10 +301,12 @@ pub fn get_legal_actions_position(game: *g.Game, pos: p.Position, list: *ActionL
     switch (square.piece) {
         .Pawn => try get_legal_actions_pawn(game, pos, list),
         .Rook => try get_legal_actions_rook(game, pos, list),
+        .UnmovedRook => try get_legal_actions_rook(game, pos, list),
         .Knight => try get_legal_actions_knight(game, pos, list),
         .Bishop => try get_legal_actions_bishop(game, pos, list),
         .Queen => try get_legal_actions_queen(game, pos, list),
         .King => try get_legal_actions_king(game, pos, list),
+        .UnmovedKing => try get_legal_actions_unmovedking(game, pos, list),
         .None => unreachable,
     }
 }

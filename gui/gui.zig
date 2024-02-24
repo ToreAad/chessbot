@@ -72,10 +72,12 @@ const ChessSprites = struct {
             chess.Colors.White => switch (piece) {
                 chess.Piece.Pawn => self.white_pawn,
                 chess.Piece.Rook => self.white_rook,
+                chess.Piece.UnmovedRook => self.white_rook,
                 chess.Piece.Knight => self.white_knight,
                 chess.Piece.Bishop => self.white_bishop,
                 chess.Piece.Queen => self.white_queen,
                 chess.Piece.King => self.white_king,
+                chess.Piece.UnmovedKing => self.white_king,
                 else => {
                     return error.PieceIsNone;
                 },
@@ -83,10 +85,12 @@ const ChessSprites = struct {
             chess.Colors.Black => switch (piece) {
                 chess.Piece.Pawn => self.black_pawn,
                 chess.Piece.Rook => self.black_rook,
+                chess.Piece.UnmovedRook => self.black_rook,
                 chess.Piece.Knight => self.black_knight,
                 chess.Piece.Bishop => self.black_bishop,
                 chess.Piece.Queen => self.black_queen,
                 chess.Piece.King => self.black_king,
+                chess.Piece.UnmovedKing => self.black_king,
                 else => {
                     return error.PieceIsNone;
                 },

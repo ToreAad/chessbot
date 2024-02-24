@@ -194,13 +194,19 @@ pub const Game = struct {
         return true;
     }
 
-    fn apply_move(game: *Game, move: MoveInfo) RevertAction {
+    fn apply_move(game: *Game, move: MoveInfo) !RevertAction {
         const from = move.from;
         const to = move.to;
         const old_to = game.board.get_state_at(to);
         const old_from = game.board.get_state_at(from);
 
         game.board.move_piece(from, to);
+        if (try old_from.get_piece() == Piece.UnmovedKing) {
+            game.board.set_piece_at(to, Piece.King);
+        }
+        if (try old_from.get_piece() == Piece.UnmovedRook) {
+            game.board.set_piece_at(to, Piece.Rook);
+        }
         const revert_action = RevertMoveInfo{ .to_state = old_to, .from_state = old_from, .action = move };
         return RevertAction{ .Move = revert_action };
     }
@@ -213,17 +219,25 @@ pub const Game = struct {
             if (king_side) {
                 game.board.move_piece(po.W_K1, po.W_KN1);
                 game.board.move_piece(po.W_KR1, po.W_KB1);
+                game.board.set_piece_at(po.W_KN1, Piece.King);
+                game.board.set_piece_at(po.W_KB1, Piece.Rook);
             } else {
                 game.board.move_piece(po.W_K1, po.W_QN1);
                 game.board.move_piece(po.W_QR1, po.W_Q1);
+                game.board.set_piece_at(po.W_QN1, Piece.King);
+                game.board.set_piece_at(po.W_Q1, Piece.Rook);
             }
         } else {
             if (king_side) {
                 game.board.move_piece(po.B_K1, po.B_KN1);
                 game.board.move_piece(po.B_KR1, po.B_KB1);
+                game.board.set_piece_at(po.B_KN1, Piece.King);
+                game.board.set_piece_at(po.B_KB1, Piece.Rook);
             } else {
                 game.board.move_piece(po.B_K1, po.B_QN1);
                 game.board.move_piece(po.B_QR1, po.B_Q1);
+                game.board.set_piece_at(po.B_QN1, Piece.King);
+                game.board.set_piece_at(po.B_Q1, Piece.Rook);
             }
         }
         const revert_action = RevertCastleInfo{ .action = info };
@@ -292,7 +306,7 @@ pub const Game = struct {
         const revert_action = switch (action) {
             Action.Move => blk: {
                 const move = action.Move;
-                break :blk game.apply_move(move);
+                break :blk try game.apply_move(move);
             },
             Action.Castle => blk: {
                 const info = action.Castle;
@@ -344,25 +358,25 @@ pub const Game = struct {
             if (king_side) {
                 game.board.move_piece(po.W_KN1, po.W_K1);
                 game.board.move_piece(po.W_KB1, po.W_KR1);
-                game.board.set_unmoved(po.W_K1);
-                game.board.set_unmoved(po.W_KR1);
+                game.board.set_piece_at(po.W_K1, Piece.UnmovedKing);
+                game.board.set_piece_at(po.W_KR1, Piece.UnmovedRook);
             } else {
                 game.board.move_piece(po.W_QN1, po.W_K1);
                 game.board.move_piece(po.W_Q1, po.W_QR1);
-                game.board.set_unmoved(po.W_K1);
-                game.board.set_unmoved(po.W_QR1);
+                game.board.set_piece_at(po.W_K1, Piece.UnmovedKing);
+                game.board.set_piece_at(po.W_QR1, Piece.UnmovedRook);
             }
         } else {
             if (king_side) {
                 game.board.move_piece(po.B_KN1, po.B_K1);
                 game.board.move_piece(po.B_KB1, po.B_KR1);
-                game.board.set_unmoved(po.B_K1);
-                game.board.set_unmoved(po.B_KR1);
+                game.board.set_piece_at(po.B_K1, Piece.UnmovedKing);
+                game.board.set_piece_at(po.B_KR1, Piece.UnmovedRook);
             } else {
                 game.board.move_piece(po.B_QN1, po.B_K1);
                 game.board.move_piece(po.B_Q1, po.B_QR1);
-                game.board.set_unmoved(po.B_K1);
-                game.board.set_unmoved(po.B_QR1);
+                game.board.set_piece_at(po.B_K1, Piece.UnmovedKing);
+                game.board.set_piece_at(po.B_QR1, Piece.UnmovedRook);
             }
         }
     }
@@ -419,7 +433,7 @@ test "game init" {
     try testing.expect(game.last_action == Action.Start);
     game.set_up();
     const square = try game.board.get_square_at(po.B_KR1);
-    try testing.expect(square.piece == Piece.Rook);
+    try testing.expect(square.piece == Piece.UnmovedRook);
 }
 
 test "game apply move" {
@@ -431,7 +445,7 @@ test "game apply move" {
     const to = Position{ .file = 4, .rank = 1 + 2 };
     const to_square_initial = try game.board.get_square_at(to);
     const move = MoveInfo{ .from = from, .to = to };
-    const revert_action = game.apply_move(move);
+    const revert_action = try game.apply_move(move);
     const from_square_final = try game.board.get_square_at(from);
     const to_square_final = try game.board.get_square_at(to);
     game.undo_action(revert_action);
@@ -444,10 +458,6 @@ test "game apply move" {
     try testing.expect(to_square_final.piece == Piece.Pawn);
     try testing.expect(from_square_undo.piece == Piece.Pawn);
     try testing.expect(to_square_undo.piece == Piece.None);
-
-    try testing.expect(from_square_initial.moved == false);
-    try testing.expect(to_square_final.moved == true);
-    try testing.expect(from_square_undo.moved == false);
 }
 
 fn test_apply_move_capture(board_setup: *const [71:0]u8, expected_board_final: *const [71:0]u8, action: Action) !void {
