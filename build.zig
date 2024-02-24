@@ -43,12 +43,17 @@ fn build_chess_tests(b: *std.Build, target: std.zig.CrossTarget) void {
 }
 
 fn build_chess_lib(b: *std.Build, target: std.zig.CrossTarget, optimize: std.builtin.OptimizeMode) *std.Build.CompileStep {
-    const chess_lib = b.addStaticLibrary(.{
-        .name = "chess",
+    const chess_lib = b.addSharedLibrary(.{
+        .name = "chesslib",
         .root_source_file = .{ .path = "chess/chess.zig" },
         .target = target,
         .optimize = optimize,
     });
+    const chess_module = b.addModule("chess", .{
+        .source_file = .{ .path = "chess/chess.zig" },
+    });
+
+    chess_lib.addModule("chess", chess_module);
     return chess_lib;
 }
 
@@ -121,6 +126,6 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     build_chess_tests(b, target);
     _ = build_chess_gui(b, target, optimize);
-    // _ = build_chess_lib(b, target, optimize);
+    _ = build_chess_lib(b, target, optimize);
     _ = build_chess_cli(b, target, optimize);
 }
