@@ -41,3 +41,45 @@ test "random agent" {
     game.undo_action(r2.revert_action());
     game.undo_action(r1.revert_action());
 }
+
+test "winnable" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var game = g.Game{ .allocator = gpa.allocator() };
+    game.set_up();
+
+    var white_player: RandomAgent = undefined;
+    var black_player: RandomAgent = undefined;
+    white_player.init();
+    black_player.init();
+    for (0..5000) |i| {
+        const action = switch (i % 2) {
+            0 => try white_player.get_action(&game),
+            1 => try black_player.get_action(&game),
+            else => unreachable,
+        };
+        switch (action) {
+            .Resign => {
+                break;
+            },
+            .Move => {
+                _ = try game.apply_action(action);
+            },
+            .Castle => {
+                _ = try game.apply_action(action);
+            },
+            .Promotion => {
+                _ = try game.apply_action(action);
+            },
+            .EnPassant => {
+                _ = try game.apply_action(action);
+            },
+
+            else => {
+                _ = try game.apply_action(action);
+            },
+        }
+        if (try game.is_remis()) {
+            break;
+        }
+    }
+}
