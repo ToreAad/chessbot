@@ -1,6 +1,37 @@
 const std = @import("std");
-const raySdk = @import("vendor/raylib/src/build.zig");
+const rl = @import("vendor/raylib-zig/build.zig");
 const builtin = @import("builtin");
+
+// pub fn link_raylib_emscripten(exe_lib: *std.Build.Step.Compile, b: *std.Build) !void {
+//     const target = b.standardTargetOptions(.{});
+//     const optimize = b.standardOptimizeOption(.{});
+//     const raylib = rl.getModule(b, "raylib-zig");
+//     const raylib_math = rl.math.getModule(b, "raylib-zig");
+
+//     // const exe_lib = rl.compileForEmscripten(b, "'$PROJECT_NAME'", "src/main.zig", target, optimize);
+//     exe_lib.addModule("raylib", raylib);
+//     exe_lib.addModule("raylib-math", raylib_math);
+//     const raylib_artifact = rl.getRaylib(b, target, optimize);
+//     // Note that raylib itself is not actually added to the exe_lib output file, so it also needs to be linked with emscripten.
+//     exe_lib.linkLibrary(raylib_artifact);
+//     const link_step = try rl.linkWithEmscripten(b, &[_]*std.Build.Step.Compile{ exe_lib, raylib_artifact });
+//     b.getInstallStep().dependOn(&link_step.step);
+//     const run_step = try rl.emscriptenRunStep(b);
+//     run_step.step.dependOn(&link_step.step);
+//     const run_option = b.step("run", "Run '$PROJECT_NAME'");
+//     run_option.dependOn(&run_step.step);
+// }
+
+pub fn link_raylib(exe: *std.Build.Step.Compile, b: *std.Build, target: std.zig.CrossTarget, optimize: std.builtin.OptimizeMode) !void {
+    // const target = b.standardTargetOptions(.{});
+    // const optimize = b.standardOptimizeOption(.{});
+    const raylib = rl.getModule(b, "vendor/raylib-zig");
+    const raylib_math = rl.math.getModule(b, "vendor/raylib-zig");
+
+    rl.link(b, exe, target, optimize);
+    exe.addModule("raylib", raylib);
+    exe.addModule("raylib-math", raylib_math);
+}
 
 fn build_chess_tests(b: *std.Build, target: std.zig.CrossTarget) void {
     const test_step = b.step("test", "Run chess unit tests");
@@ -69,15 +100,16 @@ fn build_chess_gui(b: *std.Build, target: std.zig.CrossTarget, optimize: std.bui
     });
 
     gui_exe.addModule("chess", chess_module);
+    try link_raylib(gui_exe, b, target, optimize);
 
-    const raylib = raySdk.addRaylib(b, target, optimize, .{});
-    gui_exe.addIncludePath(.{ .path = "vendor/raylib/src" });
-    gui_exe.linkLibrary(raylib);
+    // const raylib = raySdk.addRaylib(b, target, optimize, .{});
+    // gui_exe.addIncludePath(.{ .path = "vendor/raylib/src" });
+    // gui_exe.linkLibrary(raylib);
 
-    gui_exe.addIncludePath(.{ .path = "vendor/raygui/src" });
+    // gui_exe.addIncludePath(.{ .path = "vendor/raygui/src" });
 
-    gui_exe.addCSourceFile(.{ .file = std.build.LazyPath.relative("vendor/raygui-amend/raygui.c"), .flags = &.{ "-g", "-O3" } }); // Add the Raygui C source file, if any
-    gui_exe.linkSystemLibrary("c"); // Link with the C standard library
+    // gui_exe.addCSourceFile(.{ .file = std.build.LazyPath.relative("vendor/raygui-amend/raygui.c"), .flags = &.{ "-g", "-O3" } }); // Add the Raygui C source file, if any
+    // gui_exe.linkSystemLibrary("c"); // Link with the C standard library
 
     const install_content_step = b.addInstallDirectory(.{
         .source_dir = .{ .path = "gui/sprites/" },

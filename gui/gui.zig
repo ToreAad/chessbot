@@ -1,13 +1,10 @@
 const std = @import("std");
-const r = @cImport({
-    @cInclude("raylib.h");
-    @cInclude("raygui.h");
-});
+const rl = @import("raylib");
 
 const chess = @import("chess");
 
-fn draw_square(x: i32, y: i32, size: i32, color: r.Color) void {
-    r.DrawRectangle(x, y, size, size, color);
+fn draw_square(x: i32, y: i32, size: i32, color: rl.Color) void {
+    rl.drawRectangle(x, y, size, size, color);
 }
 
 fn draw_board(x_offset: i32, y_offset: i32, square_size: i32) void {
@@ -17,54 +14,54 @@ fn draw_board(x_offset: i32, y_offset: i32, square_size: i32) void {
         while (rank < 8) : (rank += 1) {
             const x = file * square_size;
             const y = rank * square_size;
-            const color = if ((file + rank) % 2 == 0) r.WHITE else r.DARKGRAY;
+            const color = if ((file + rank) % 2 == 0) rl.Color.white else rl.Color.dark_gray;
             draw_square(x_offset + x, y_offset + y, square_size, color);
         }
     }
 }
 
 const ChessSprites = struct {
-    white_pawn: r.Texture2D,
-    white_rook: r.Texture2D,
-    white_knight: r.Texture2D,
-    white_bishop: r.Texture2D,
-    white_queen: r.Texture2D,
-    white_king: r.Texture2D,
-    black_pawn: r.Texture2D,
-    black_rook: r.Texture2D,
-    black_knight: r.Texture2D,
-    black_bishop: r.Texture2D,
-    black_queen: r.Texture2D,
-    black_king: r.Texture2D,
+    white_pawn: rl.Texture2D,
+    white_rook: rl.Texture2D,
+    white_knight: rl.Texture2D,
+    white_bishop: rl.Texture2D,
+    white_queen: rl.Texture2D,
+    white_king: rl.Texture2D,
+    black_pawn: rl.Texture2D,
+    black_rook: rl.Texture2D,
+    black_knight: rl.Texture2D,
+    black_bishop: rl.Texture2D,
+    black_queen: rl.Texture2D,
+    black_king: rl.Texture2D,
 
     fn init(self: *ChessSprites) !void {
-        self.white_pawn = r.LoadTexture("sprites/white_pawn.png");
-        self.white_rook = r.LoadTexture("sprites/white_rook.png");
-        self.white_knight = r.LoadTexture("sprites/white_knight.png");
-        self.white_bishop = r.LoadTexture("sprites/white_bishop.png");
-        self.white_queen = r.LoadTexture("sprites/white_queen.png");
-        self.white_king = r.LoadTexture("sprites/white_king.png");
-        self.black_pawn = r.LoadTexture("sprites/black_pawn.png");
-        self.black_rook = r.LoadTexture("sprites/black_rook.png");
-        self.black_knight = r.LoadTexture("sprites/black_knight.png");
-        self.black_bishop = r.LoadTexture("sprites/black_bishop.png");
-        self.black_queen = r.LoadTexture("sprites/black_queen.png");
-        self.black_king = r.LoadTexture("sprites/black_king.png");
+        self.white_pawn = rl.loadTexture("sprites/white_pawn.png");
+        self.white_rook = rl.loadTexture("sprites/white_rook.png");
+        self.white_knight = rl.loadTexture("sprites/white_knight.png");
+        self.white_bishop = rl.loadTexture("sprites/white_bishop.png");
+        self.white_queen = rl.loadTexture("sprites/white_queen.png");
+        self.white_king = rl.loadTexture("sprites/white_king.png");
+        self.black_pawn = rl.loadTexture("sprites/black_pawn.png");
+        self.black_rook = rl.loadTexture("sprites/black_rook.png");
+        self.black_knight = rl.loadTexture("sprites/black_knight.png");
+        self.black_bishop = rl.loadTexture("sprites/black_bishop.png");
+        self.black_queen = rl.loadTexture("sprites/black_queen.png");
+        self.black_king = rl.loadTexture("sprites/black_king.png");
     }
 
     fn deinit(self: *ChessSprites) void {
-        r.UnloadTexture(self.white_pawn);
-        r.UnloadTexture(self.white_rook);
-        r.UnloadTexture(self.white_knight);
-        r.UnloadTexture(self.white_bishop);
-        r.UnloadTexture(self.white_queen);
-        r.UnloadTexture(self.white_king);
-        r.UnloadTexture(self.black_pawn);
-        r.UnloadTexture(self.black_rook);
-        r.UnloadTexture(self.black_knight);
-        r.UnloadTexture(self.black_bishop);
-        r.UnloadTexture(self.black_queen);
-        r.UnloadTexture(self.black_king);
+        rl.unloadTexture(self.white_pawn);
+        rl.unloadTexture(self.white_rook);
+        rl.unloadTexture(self.white_knight);
+        rl.unloadTexture(self.white_bishop);
+        rl.unloadTexture(self.white_queen);
+        rl.unloadTexture(self.white_king);
+        rl.unloadTexture(self.black_pawn);
+        rl.unloadTexture(self.black_rook);
+        rl.unloadTexture(self.black_knight);
+        rl.unloadTexture(self.black_bishop);
+        rl.unloadTexture(self.black_queen);
+        rl.unloadTexture(self.black_king);
     }
 
     fn draw_piece(self: *ChessSprites, x: i32, y: i32, size: i32, piece: chess.Piece, color: chess.Colors) !void {
@@ -97,19 +94,19 @@ const ChessSprites = struct {
             },
         };
 
-        r.DrawTextureRec(
+        rl.drawTextureRec(
             tex,
-            r.Rectangle{
+            rl.Rectangle{
                 .x = 0,
                 .y = 0,
                 .width = @as(f32, @floatFromInt(size)),
                 .height = @as(f32, @floatFromInt(size)),
             },
-            r.Vector2{
+            rl.Vector2{
                 .x = @as(f32, @floatFromInt(x)),
                 .y = @as(f32, @floatFromInt(y)),
             },
-            r.WHITE,
+            rl.Color.white,
         );
     }
 
@@ -139,9 +136,9 @@ pub fn main() !void {
     const screenWidth = 10 * squareSize;
     const screenHeight = 10 * squareSize;
 
-    r.InitWindow(screenWidth, screenHeight, "Chess Bot");
-    r.SetTargetFPS(144);
-    defer r.CloseWindow();
+    rl.initWindow(screenWidth, screenHeight, "Chess Bot");
+    rl.setTargetFPS(144);
+    defer rl.closeWindow();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var game = chess.Game{ .allocator = gpa.allocator() };
@@ -170,8 +167,8 @@ pub fn main() !void {
     var revert_action_list = std.ArrayList(chess.GameState).init(gpa.allocator());
     defer revert_action_list.deinit();
 
-    while (!r.WindowShouldClose()) {
-        if (r.IsKeyPressed(r.KEY_RIGHT)) {
+    while (!rl.windowShouldClose()) {
+        if (rl.isKeyPressed(rl.KeyboardKey.key_right)) {
             if (game.active_color == chess.Colors.White) {
                 const action = try white_player.get_action(&game);
                 const revert_action = try game.apply_action(action);
@@ -181,15 +178,15 @@ pub fn main() !void {
                 const revert_action = try game.apply_action(action);
                 try revert_action_list.append(revert_action);
             }
-        } else if (r.IsKeyPressed(r.KEY_LEFT)) {
+        } else if (rl.isKeyPressed(rl.KeyboardKey.key_left)) {
             if (revert_action_list.items.len > 0) {
                 const revert_action = revert_action_list.pop();
                 game.undo_action(revert_action.revert_action());
             }
         }
 
-        r.BeginDrawing();
-        r.ClearBackground(r.LIGHTGRAY);
+        rl.beginDrawing();
+        rl.clearBackground(rl.Color.light_gray);
 
         const padding_x = (screenWidth - (8 * squareSize)) / 2;
         const padding_y = (screenHeight - (8 * squareSize)) / 2;
@@ -197,6 +194,6 @@ pub fn main() !void {
         draw_board(padding_x, padding_y, squareSize);
         try sprites.draw_game(&game, padding_x, padding_y, squareSize);
 
-        r.EndDrawing();
+        rl.endDrawing();
     }
 }
