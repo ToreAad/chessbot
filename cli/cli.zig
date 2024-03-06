@@ -19,10 +19,8 @@ pub fn main() !void {
     ;
     try game.board.set_up_from_string(board_setup);
 
-    var white_player: chess.agent.RandomAgent = undefined;
-    var black_player: chess.agent.RandomAgent = undefined;
-    white_player.init();
-    black_player.init();
+    var white_player = chess.agent.RandomAgent.init();
+    var black_player = chess.agent.RandomAgent.init();
 
     std.debug.print("Game started\n", .{});
     std.debug.print("\x1b[2J{s}\n", .{&game.board});

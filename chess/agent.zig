@@ -24,8 +24,8 @@ pub const RandomAgent = struct {
         return action_list.items[index + 1];
     }
 
-    pub fn init(self: *RandomAgent) void {
-        self.rnd = RndGen.init(0);
+    pub fn init() RandomAgent {
+        return RandomAgent{ .rnd = RndGen.init(0) };
     }
 };
 
@@ -47,10 +47,8 @@ test "winnable" {
     var game = g.Game{ .allocator = gpa.allocator() };
     game.set_up();
 
-    var white_player: RandomAgent = undefined;
-    var black_player: RandomAgent = undefined;
-    white_player.init();
-    black_player.init();
+    var white_player = RandomAgent.init();
+    var black_player = RandomAgent.init();
     for (0..5000) |i| {
         const action = switch (i % 2) {
             0 => try white_player.get_action(&game),
