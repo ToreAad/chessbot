@@ -11,10 +11,13 @@ pub const ChessGame = struct {
     revert_action_list: std.ArrayList(chess.GameState),
     padding_x: i32,
     padding_y: i32,
-    squareSize: i32,
-    screenWidth: i32,
-    screenHeight: i32,
+    square_size: i32,
+    screen_width: i32,
+    screen_height: i32,
     allocator: std.mem.Allocator,
+    mouse_position: rl.Vector2,
+    tile_hovered: i32,
+    tile_selected: i32,
 
     pub fn init(
         squareSize: i32,
@@ -55,10 +58,13 @@ pub const ChessGame = struct {
             .revert_action_list = revert_action_list,
             .padding_x = padding_x,
             .padding_y = padding_y,
-            .squareSize = squareSize,
-            .screenWidth = screenWidth,
-            .screenHeight = screenHeight,
+            .square_size = squareSize,
+            .screen_width = screenWidth,
+            .screen_height = screenHeight,
             .allocator = allocator,
+            .mouse_position = rl.Vector2{ .x = -100, .y = -100 },
+            .tile_hovered = -1,
+            .tile_selected = -1,
         };
     }
 
@@ -84,10 +90,12 @@ pub const ChessGame = struct {
                 self.game.undo_action(revert_action.revert_action());
             }
         }
+        self.mouse_position = rl.getMousePosition();
 
         rl.beginDrawing();
         rl.clearBackground(rl.Color.light_gray);
-        try self.chess_graphics.draw(self.padding_x, self.padding_y, self.squareSize, &self.game);
+        try self.chess_graphics.draw(self.padding_x, self.padding_y, self.square_size, &self.game);
+        rl.drawCircleV(self.mouse_position, 5, rl.Color.red);
         rl.endDrawing();
     }
 };
