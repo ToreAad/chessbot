@@ -3,7 +3,7 @@ const rl = @import("raylib");
 const chess = @import("chess");
 
 const ChessSprites = @import("chess_sprites.zig").ChessSprites;
-const draw_board = @import("chess_board.zig").draw_board;
+const GuiState = @import("gui_state.zig").GuiState;
 
 pub const ChessGraphics = struct {
     chess_sprites: ChessSprites,
@@ -17,14 +17,40 @@ pub const ChessGraphics = struct {
         self.chess_sprites.deinit();
     }
 
+    fn draw_sprites(
+        self: *ChessGraphics,
+        state: *GuiState,
+    ) !void {
+        var file: u8 = 0;
+        while (file < 8) : (file += 1) {
+            var rank: u8 = 0;
+            while (rank < 8) : (rank += 1) {
+                const pos = chess.Position{
+                    .file = file,
+                    .rank = rank,
+                };
+                const square = try state.game.board.get_square_at(pos);
+                if (square.empty) {
+                    continue;
+                }
+                const index = (rank * 8) + file;
+                const tile = state.tiles[index];
+                const x = tile.rect.x;
+                const y = tile.rect.y;
+                const square_size = tile.rect.width;
+
+                try self.chess_sprites.draw_piece(x, y, square_size, square.piece, square.color);
+            }
+        }
+    }
+
     pub fn draw(
         self: *ChessGraphics,
-        x_offset: i32,
-        y_offset: i32,
-        square_size: i32,
-        game: *chess.Game,
+        state: *GuiState,
     ) !void {
-        draw_board(x_offset, y_offset, square_size);
-        try self.chess_sprites.draw_game(game, x_offset, y_offset, square_size);
+        for (state.tiles) |tile| {
+            tile.draw();
+        }
+        try self.draw_sprites(state);
     }
 };
