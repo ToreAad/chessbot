@@ -3,6 +3,7 @@ const rl = @import("raylib");
 const chess = @import("chess");
 
 const GuiTile = @import("gui_tile.zig").GuiTile;
+const MouseState = @import("mouse_state.zig").MouseState;
 
 pub const GuiState = struct {
     game: chess.Game,
@@ -49,7 +50,8 @@ pub const GuiState = struct {
                     },
                     .color = if ((file + rank) % 2 == 0) rl.Color.white else rl.Color.dark_gray,
                     .hovered = false,
-                    .selected = false,
+                    .down_selected = false,
+                    .up_selected = false,
                 };
             }
         }
@@ -71,29 +73,121 @@ pub const GuiState = struct {
     }
 
     pub fn update(self: *GuiState) !void {
-        if (rl.isKeyPressed(rl.KeyboardKey.key_right)) {
-            if (self.game.active_color == chess.Colors.White) {
-                const action = try self.white_player.get_action(&self.game);
-                const revert_action = try self.game.apply_action(action);
-                try self.revert_action_list.append(revert_action);
-            } else {
-                const action = try self.black_player.get_action(&self.game);
-                const revert_action = try self.game.apply_action(action);
-                try self.revert_action_list.append(revert_action);
-            }
-        } else if (rl.isKeyPressed(rl.KeyboardKey.key_left)) {
+        // if (rl.isKeyPressed(rl.KeyboardKey.key_right)) {
+        //     if (self.game.active_color == chess.Colors.White) {
+        //         const action = try self.white_player.get_action(&self.game);
+        //         const revert_action = try self.game.apply_action(action);
+        //         try self.revert_action_list.append(revert_action);
+        //     } else {
+        //         const action = try self.black_player.get_action(&self.game);
+        //         const revert_action = try self.game.apply_action(action);
+        //         try self.revert_action_list.append(revert_action);
+        //     }
+        // } else if (rl.isKeyPressed(rl.KeyboardKey.key_left)) {
+        //     if (self.revert_action_list.items.len > 0) {
+        //         const revert_action = self.revert_action_list.pop();
+        //         self.game.undo_action(revert_action.revert_action());
+        //     }
+        // }
+
+        if (rl.isMouseButtonPressed(rl.MouseButton.mouse_button_right)) {
             if (self.revert_action_list.items.len > 0) {
                 const revert_action = self.revert_action_list.pop();
                 self.game.undo_action(revert_action.revert_action());
             }
         }
 
-        const clicked = rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left);
+        const mouse_state = blk: {
+            const btn = rl.MouseButton.mouse_button_left;
+            if (rl.isMouseButtonPressed(btn)) {
+                break :blk MouseState.Pressed;
+            } else if (rl.isMouseButtonDown(btn)) {
+                break :blk MouseState.Down;
+            } else if (rl.isMouseButtonReleased(btn)) {
+                break :blk MouseState.Released;
+            } else if (rl.isMouseButtonUp(btn)) {
+                break :blk MouseState.Up;
+            } else {
+                unreachable;
+            }
+        };
 
         self.mouse_position = rl.getMousePosition();
 
         for (self.tiles, 0..) |_, i| {
-            self.tiles[i].update(self.mouse_position, clicked);
+            self.tiles[i].update(self.mouse_position, mouse_state);
         }
+
+        if (rl.isMouseButtonReleased(rl.MouseButton.mouse_button_left)) {
+            // get down selected tile
+            const down_selected_index = try self.get_down_selected_index();
+            if (down_selected_index == null) {
+                self.reset_selected();
+                return;
+            }
+
+            // get file and rank of down selected tile
+            const down_selected_position = try index_to_position(down_selected_index.?);
+
+            // get up selected tile
+            const up_selected_index = try self.get_up_selected_index();
+            if (up_selected_index == null) {
+                self.reset_selected();
+                return;
+            }
+
+            // get file and rank of up selected tile
+            const up_selected_position = try index_to_position(up_selected_index.?);
+
+            // get action from down and up selected tiles
+            const action = chess.Action{
+                .Move = chess.MoveInfo{
+                    .from = down_selected_position,
+                    .to = up_selected_position,
+                },
+            };
+
+            if (false == try chess.Rules.legal_action(&self.game, action)) {
+                self.reset_selected();
+                return;
+            }
+            // apply action to game
+            const revert_action = try self.game.apply_action(action);
+            try self.revert_action_list.append(revert_action);
+
+            // reset down and up selected tiles
+            self.reset_selected();
+        }
+    }
+
+    fn reset_selected(self: *GuiState) void {
+        for (self.tiles, 0..) |_, i| {
+            self.tiles[i].down_selected = false;
+            self.tiles[i].up_selected = false;
+        }
+    }
+
+    fn get_down_selected_index(self: *GuiState) !?usize {
+        for (self.tiles, 0..) |tile, i| {
+            if (tile.down_selected) {
+                return i;
+            }
+        }
+        return null;
+    }
+
+    fn get_up_selected_index(self: *GuiState) !?usize {
+        for (self.tiles, 0..) |tile, i| {
+            if (tile.up_selected) {
+                return i;
+            }
+        }
+        return null;
+    }
+
+    fn index_to_position(index: usize) !chess.Position {
+        const file = @as(u8, @intCast(index % 8));
+        const rank = @as(u8, @intCast(index / 8));
+        return chess.Position{ .file = file, .rank = rank };
     }
 };

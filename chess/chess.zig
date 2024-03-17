@@ -1,6 +1,9 @@
 pub const agent = @import("agent.zig");
 pub const Game = @import("game.zig").Game;
+pub const Action = @import("game.zig").Action;
+pub const MoveInfo = @import("game.zig").MoveInfo;
 pub const Colors = @import("colors.zig").Colors;
 pub const Piece = @import("pieces.zig").Piece;
 pub const Position = @import("position.zig").Position;
 pub const GameState = @import("game.zig").GameState;
+pub const Rules = @import("rules.zig");

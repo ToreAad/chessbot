@@ -31,7 +31,14 @@ fn is_legal_move_pawn(game: *g.Game, action: g.MoveInfo) !bool {
         }
     } else {
         const rank_diff = if (from_square.color == Colors.White) to.rank - from.rank else from.rank - to.rank;
-        const legal_rank_diff: u32 = if (from.rank == 1) 2 else 1;
+        const legal_rank_diff: u32 = blk: {
+            const start_rank: u8 = if (from_square.color == Colors.White) 1 else 6;
+            if (from.rank == start_rank) {
+                break :blk 2;
+            } else {
+                break :blk 1;
+            }
+        };
         if (rank_diff > legal_rank_diff or rank_diff < 1) {
             return false;
         }
@@ -619,6 +626,86 @@ test "legal move pawn" {
 
     const action = g.Action{ .Move = move };
     try test_legal_action(board_setup, board_target, action);
+}
+
+test "legal move black pawn short" {
+    const allocator = std.heap.page_allocator;
+    var game = g.Game{ .allocator = allocator };
+    game.set_up();
+
+    const board_setup =
+        \\.......K
+        \\.....P..
+        \\........
+        \\........
+        \\........
+        \\........
+        \\p.......
+        \\.......k
+    ;
+    const board_target =
+        \\.......K
+        \\.....P..
+        \\........
+        \\........
+        \\........
+        \\p.......
+        \\........
+        \\.......k
+    ;
+    const move = g.MoveInfo{
+        .from = Position{
+            .file = 0,
+            .rank = 6,
+        },
+        .to = Position{
+            .file = 0,
+            .rank = 5,
+        },
+    };
+
+    const action = g.Action{ .Move = move };
+    try test_legal_action_black(board_setup, board_target, action);
+}
+
+test "legal move black pawn long" {
+    const allocator = std.heap.page_allocator;
+    var game = g.Game{ .allocator = allocator };
+    game.set_up();
+
+    const board_setup =
+        \\.......K
+        \\.....P..
+        \\........
+        \\........
+        \\........
+        \\........
+        \\p.......
+        \\.......k
+    ;
+    const board_target =
+        \\.......K
+        \\.....P..
+        \\........
+        \\........
+        \\p.......
+        \\........
+        \\........
+        \\.......k
+    ;
+    const move = g.MoveInfo{
+        .from = Position{
+            .file = 0,
+            .rank = 6,
+        },
+        .to = Position{
+            .file = 0,
+            .rank = 4,
+        },
+    };
+
+    const action = g.Action{ .Move = move };
+    try test_legal_action_black(board_setup, board_target, action);
 }
 
 test "legal move pawn capture" {
