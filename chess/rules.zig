@@ -539,7 +539,7 @@ pub fn legal_action(game: *g.Game, action: g.Action) !bool {
 }
 
 fn test_legal_action(board_setup: *const [71:0]u8, board_target: *const [71:0]u8, action: g.Action) !void {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -578,7 +578,7 @@ fn test_legal_action_black(board_setup: *const [71:0]u8, board_target: *const [7
 }
 
 fn test_not_legal_move(board_setup: *const [71:0]u8, action: g.Action) !void {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -589,7 +589,7 @@ fn test_not_legal_move(board_setup: *const [71:0]u8, action: g.Action) !void {
 }
 
 test "legal move pawn" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -629,7 +629,7 @@ test "legal move pawn" {
 }
 
 test "legal move black pawn short" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -669,7 +669,7 @@ test "legal move black pawn short" {
 }
 
 test "legal move black pawn long" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -709,7 +709,7 @@ test "legal move black pawn long" {
 }
 
 test "legal move pawn capture" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -749,7 +749,7 @@ test "legal move pawn capture" {
 }
 
 test "not legal move pawn" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -1365,7 +1365,7 @@ test "not legal castle king moved" {
         \\.......k
     ;
 
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -1464,7 +1464,7 @@ test "legal en passant" {
         \\.......k
     ;
 
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -1540,7 +1540,7 @@ test "not legal en passant" {
     ;
     _ = board_target;
 
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -1652,7 +1652,7 @@ test "legal promotion" {
 }
 
 fn check_test_helper(board_setup: *const [71:0]u8, color: Colors, is_checked: bool) !void {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -1881,7 +1881,7 @@ test "king move self mate illegal" {
         \\.......k
     ;
 
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -1915,7 +1915,7 @@ test "pawn move self mate illegal" {
         \\.......k
     ;
 
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -1948,7 +1948,7 @@ test "castle self mate illegal" {
         \\........
         \\.r.....k
     ;
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 
@@ -1976,7 +1976,7 @@ test "cant move pawn if in check" {
         \\....r..k
     ;
 
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
 

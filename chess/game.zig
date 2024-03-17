@@ -427,7 +427,7 @@ pub const Game = struct {
 };
 
 test "game init" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = Game{ .allocator = allocator };
     try testing.expect(game.active_color == Colors.White);
     try testing.expect(game.last_action == Action.Start);
@@ -437,7 +437,7 @@ test "game init" {
 }
 
 test "game apply move" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = Game{ .allocator = allocator };
     game.set_up();
     const from = Position{ .file = 4, .rank = 1 };
@@ -461,7 +461,7 @@ test "game apply move" {
 }
 
 fn test_apply_move_capture(board_setup: *const [71:0]u8, expected_board_final: *const [71:0]u8, action: Action) !void {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = Game{ .allocator = allocator };
 
     try game.board.set_up_from_string(board_setup);

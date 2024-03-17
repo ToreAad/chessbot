@@ -30,7 +30,7 @@ pub const RandomAgent = struct {
 };
 
 test "random agent" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     game.set_up();
     var agent = RandomAgent{ .rnd = RndGen.init(0) };
@@ -43,8 +43,8 @@ test "random agent" {
 }
 
 test "winnable" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    var game = g.Game{ .allocator = gpa.allocator() };
+    const allocator = std.testing.allocator;
+    var game = g.Game{ .allocator = allocator };
     game.set_up();
 
     var white_player = RandomAgent.init();

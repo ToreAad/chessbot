@@ -60,7 +60,7 @@ pub fn score(analysis: Analysis) u32 {
 }
 
 test "get_score" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     const board_setup =
         \\R...K..R

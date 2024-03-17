@@ -329,7 +329,7 @@ pub fn get_legal_actions(game: *g.Game, list: *ActionList) !void {
 }
 
 test "get legal actions pawn" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     const board_setup =
         \\K.......
@@ -357,7 +357,7 @@ test "get legal actions pawn" {
 }
 
 test "get legal actions rook" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     const board_setup =
         \\K...N..R
@@ -385,7 +385,7 @@ test "get legal actions rook" {
 }
 
 test "get legal actions bishop" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     const board_setup =
         \\K.......
@@ -413,7 +413,7 @@ test "get legal actions bishop" {
 }
 
 test "get legal actions queen" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     const board_setup =
         \\K..P....
@@ -441,7 +441,7 @@ test "get legal actions queen" {
 }
 
 test "get legal actions king" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     const board_setup =
         \\R...K..R
@@ -469,7 +469,7 @@ test "get legal actions king" {
 }
 
 test "get legal actions board" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     const board_setup =
         \\R...K..R
@@ -496,7 +496,7 @@ test "get legal actions board" {
 }
 
 test "get legal actions weird board" {
-    const allocator = std.heap.page_allocator;
+    const allocator = std.testing.allocator;
     var game = g.Game{ .allocator = allocator };
     const board_setup =
         \\........
