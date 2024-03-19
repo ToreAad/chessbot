@@ -44,7 +44,23 @@ pub const ChessGraphics = struct {
         }
     }
 
-    pub fn draw(
+    fn draw_menu(
+        self: *ChessGraphics,
+        state: *GuiState,
+    ) !void {
+        _ = state;
+        _ = self;
+        const screenWidth = rl.getScreenWidth();
+        const screenHeight = rl.getScreenHeight();
+        const fontSize = 20;
+        const text = "Press space to start the game";
+        const textWidth = rl.measureText(text, fontSize);
+        const x = @divTrunc((screenWidth - textWidth), 2);
+        const y = @divTrunc(screenHeight, 2);
+        rl.drawText(text, x, y, fontSize, rl.Color.white);
+    }
+
+    fn draw_gameplay(
         self: *ChessGraphics,
         state: *GuiState,
     ) !void {
@@ -52,5 +68,32 @@ pub const ChessGraphics = struct {
             tile.draw();
         }
         try self.draw_sprites(state);
+    }
+
+    fn draw_ending(
+        self: *ChessGraphics,
+        state: *GuiState,
+    ) !void {
+        _ = state;
+        _ = self;
+        const screenWidth = rl.getScreenWidth();
+        const screenHeight = rl.getScreenHeight();
+        const fontSize = 20;
+        const text = "Press space to restart the game";
+        const textWidth = rl.measureText(text, fontSize);
+        const x = @divTrunc((screenWidth - textWidth), 2);
+        const y = @divTrunc(screenHeight, 2);
+        rl.drawText(text, x, y, fontSize, rl.Color.white);
+    }
+
+    pub fn draw(
+        self: *ChessGraphics,
+        state: *GuiState,
+    ) !void {
+        switch (state.screen) {
+            .Menu => try self.draw_menu(state),
+            .Gameplay => try self.draw_gameplay(state),
+            .Ending => try self.draw_ending(state),
+        }
     }
 };

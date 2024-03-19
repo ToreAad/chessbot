@@ -41,7 +41,6 @@ pub const ChessGame = struct {
         rl.beginDrawing();
         rl.clearBackground(rl.Color.light_gray);
         try self.chess_graphics.draw(&self.state);
-        rl.drawCircleV(self.state.mouse_position, 5, rl.Color.red);
         rl.endDrawing();
     }
 };
