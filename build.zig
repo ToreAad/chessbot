@@ -6,7 +6,7 @@ pub fn build_chess_web(b: *std.Build, target: std.zig.CrossTarget, optimize: std
     const raylib = rl.getModule(b, "vendor/raylib-zig");
     const raylib_math = rl.math.getModule(b, "vendor/raylib-zig");
 
-    const exe_lib = rl.compileForEmscripten(b, "'$PROJECT_NAME'", "gui/gui.zig", target, optimize);
+    const exe_lib = rl.compileForEmscripten(b, "'$PROJECT_NAME'", "gui/main.zig", target, optimize);
     exe_lib.addModule("raylib", raylib);
     exe_lib.addModule("raylib-math", raylib_math);
 
@@ -54,7 +54,7 @@ fn build_chess_tests(b: *std.Build, target: std.zig.CrossTarget) void {
         .{ .name = "score", .path = "chess/score.zig" },
         .{ .name = "agent", .path = "chess/agent.zig" },
         .{ .name = "cli", .path = "cli/cli.zig" },
-        .{ .name = "gui", .path = "gui/gui.zig" },
+        .{ .name = "gui", .path = "gui/main.zig" },
     };
 
     const unoptimized = b.standardOptimizeOption(.{ .preferred_optimize_mode = .Debug });
@@ -92,7 +92,7 @@ fn build_chess_lib(b: *std.Build, target: std.zig.CrossTarget, optimize: std.bui
 fn build_chess_gui(b: *std.Build, target: std.zig.CrossTarget, optimize: std.builtin.OptimizeMode) *std.Build.CompileStep {
     const gui_exe = b.addExecutable(.{
         .name = "chess-gui",
-        .root_source_file = .{ .path = "gui/gui.zig" },
+        .root_source_file = .{ .path = "gui/main.zig" },
         .target = target,
         .optimize = optimize,
     });

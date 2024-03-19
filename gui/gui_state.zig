@@ -73,22 +73,17 @@ pub const GuiState = struct {
     }
 
     pub fn update(self: *GuiState) !void {
-        // if (rl.isKeyPressed(rl.KeyboardKey.key_right)) {
-        //     if (self.game.active_color == chess.Colors.White) {
-        //         const action = try self.white_player.get_action(&self.game);
-        //         const revert_action = try self.game.apply_action(action);
-        //         try self.revert_action_list.append(revert_action);
-        //     } else {
-        //         const action = try self.black_player.get_action(&self.game);
-        //         const revert_action = try self.game.apply_action(action);
-        //         try self.revert_action_list.append(revert_action);
-        //     }
-        // } else if (rl.isKeyPressed(rl.KeyboardKey.key_left)) {
-        //     if (self.revert_action_list.items.len > 0) {
-        //         const revert_action = self.revert_action_list.pop();
-        //         self.game.undo_action(revert_action.revert_action());
-        //     }
-        // }
+        if (rl.isKeyPressed(rl.KeyboardKey.key_space)) {
+            if (self.game.active_color == chess.Colors.White) {
+                const action = try self.white_player.get_action(&self.game);
+                const revert_action = try self.game.apply_action(action);
+                try self.revert_action_list.append(revert_action);
+            } else {
+                const action = try self.black_player.get_action(&self.game);
+                const revert_action = try self.game.apply_action(action);
+                try self.revert_action_list.append(revert_action);
+            }
+        }
 
         if (rl.isMouseButtonPressed(rl.MouseButton.mouse_button_right)) {
             if (self.revert_action_list.items.len > 0) {
@@ -140,12 +135,7 @@ pub const GuiState = struct {
             const up_selected_position = try index_to_position(up_selected_index.?);
 
             // get action from down and up selected tiles
-            const action = chess.Action{
-                .Move = chess.MoveInfo{
-                    .from = down_selected_position,
-                    .to = up_selected_position,
-                },
-            };
+            const action = try self.get_action(down_selected_position, up_selected_position);
 
             if (false == try chess.Rules.legal_action(&self.game, action)) {
                 self.reset_selected();
@@ -157,6 +147,54 @@ pub const GuiState = struct {
 
             // reset down and up selected tiles
             self.reset_selected();
+        }
+    }
+
+    fn get_action(self: *GuiState, down_selected_position: chess.Position, up_selected_position: chess.Position) !chess.Action {
+        const from_square = try self.game.board.get_square_at(down_selected_position);
+
+        const move = chess.game.MoveInfo{ .from = down_selected_position, .to = up_selected_position };
+
+        switch (from_square.piece) {
+            .Pawn => {
+                if (up_selected_position.rank == 0 or up_selected_position.rank == 7) {
+                    return chess.Action{
+                        .Promotion = chess.game.PromotionInfo{
+                            .piece = chess.Piece.Queen,
+                            .move = move,
+                        },
+                    };
+                }
+                return chess.Action{
+                    .Move = move,
+                };
+            },
+
+            .UnmovedKing => {
+                if (move.to.file == move.from.file + 2) {
+                    return chess.Action{
+                        .Castle = chess.game.CastleInfo{
+                            .color = from_square.color,
+                            .king_side = true,
+                        },
+                    };
+                } else if (move.to.file == move.from.file - 3) {
+                    return chess.Action{
+                        .Castle = chess.game.CastleInfo{
+                            .color = from_square.color,
+                            .king_side = false,
+                        },
+                    };
+                }
+                return chess.Action{
+                    .Move = move,
+                };
+            },
+            else => {
+                return chess.Action{
+                    .Move = move,
+                };
+            },
         }
     }
 

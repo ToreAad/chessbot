@@ -21,7 +21,10 @@ fn is_legal_move_pawn(game: *g.Game, action: g.MoveInfo) !bool {
         if (to_square.color == from_square.color) {
             return false;
         }
-        const rank_diff = if (from_square.color == Colors.White) to.rank - from.rank else from.rank - to.rank;
+        const rank_diff = if (from_square.color == Colors.White)
+            @as(i16, @intCast(to.rank)) - @as(i16, @intCast(from.rank))
+        else
+            @as(i16, @intCast(from.rank)) - @as(i16, @intCast(to.rank));
         if (rank_diff != 1) {
             return false;
         }
@@ -30,7 +33,10 @@ fn is_legal_move_pawn(game: *g.Game, action: g.MoveInfo) !bool {
             return false;
         }
     } else {
-        const rank_diff = if (from_square.color == Colors.White) to.rank - from.rank else from.rank - to.rank;
+        const rank_diff = if (from_square.color == Colors.White)
+            @as(i16, @intCast(to.rank)) - @as(i16, @intCast(from.rank))
+        else
+            @as(i16, @intCast(from.rank)) - @as(i16, @intCast(to.rank));
         const legal_rank_diff: u32 = blk: {
             const start_rank: u8 = if (from_square.color == Colors.White) 1 else 6;
             if (from.rank == start_rank) {
