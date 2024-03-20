@@ -11,10 +11,43 @@ pub const Screens = enum {
     Ending,
 };
 
-pub const GuiState = struct {
-    screen: Screens,
+pub const Endings = enum {
+    Checkmate,
+    Remis,
+    Resign,
+};
+
+pub const MenuInfo = struct {
+    fn update(self: *MenuInfo) !Screens {
+        _ = self;
+        if (rl.isKeyPressed(rl.KeyboardKey.key_space)) {
+            return Screens.Gameplay;
+        }
+        return Screens.Menu;
+    }
+};
+
+pub const EndingInfo = struct {
+    ending: Endings,
+    winner: chess.Colors,
+
+    fn update(self: *EndingInfo) !Screens {
+        _ = self;
+        if (rl.isKeyPressed(rl.KeyboardKey.key_space)) {
+            return Screens.Gameplay;
+        }
+        return Screens.Ending;
+    }
+};
+
+pub const Screen = union(enum) {
+    Menu: MenuInfo,
+    Gameplay: GameplayInfo,
+    Ending: EndingInfo,
+};
+
+pub const GameplayInfo = struct {
     game: chess.Game,
-    mouse_position: rl.Vector2,
     tiles: [64]GuiTile,
     revert_action_list: std.ArrayList(chess.GameState),
     white_player: chess.agent.RandomAgent,
@@ -44,7 +77,7 @@ pub const GuiState = struct {
         x_offset: i32,
         y_offset: i32,
         square_size: i32,
-    ) !GuiState {
+    ) !GameplayInfo {
         var game = chess.Game{ .allocator = allocator };
 
         const board_setup =
@@ -83,10 +116,8 @@ pub const GuiState = struct {
         const revert_action_list = std.ArrayList(chess.GameState).init(allocator);
         const white_player = chess.agent.RandomAgent.init();
         const black_player = chess.agent.RandomAgent.init();
-        return GuiState{
-            .screen = Screens.Menu,
+        return GameplayInfo{
             .game = game,
-            .mouse_position = rl.Vector2{ .x = 0, .y = 0 },
             .tiles = tiles,
             .revert_action_list = revert_action_list,
             .white_player = white_player,
@@ -94,11 +125,11 @@ pub const GuiState = struct {
         };
     }
 
-    pub fn deinit(self: *GuiState) void {
+    pub fn deinit(self: *GameplayInfo) void {
         self.revert_action_list.deinit();
     }
 
-    fn update_gameplay(self: *GuiState) !void {
+    fn update(self: *GameplayInfo) !Screens {
         if (rl.isMouseButtonPressed(rl.MouseButton.mouse_button_right)) {
             if (self.revert_action_list.items.len > 0) {
                 const revert_action = self.revert_action_list.pop();
@@ -121,25 +152,32 @@ pub const GuiState = struct {
             }
         };
 
+        const mouse_position = rl.getMousePosition();
+
         for (self.tiles, 0..) |_, i| {
-            self.tiles[i].update(self.mouse_position, mouse_state);
+            self.tiles[i].update(mouse_position, mouse_state);
+        }
+
+        if (rl.isKeyPressed(rl.KeyboardKey.key_x)) {
+            return Screens.Ending;
         }
 
         const new_state = try self.maybe_change_game_state();
 
         if (new_state != null) {
             switch (new_state.?) {
-                .Checkmate => self.screen = Screens.Ending,
-                .Remis => self.screen = Screens.Ending,
-                .Resign => self.screen = Screens.Ending,
+                .Checkmate => return Screens.Ending,
+                .Remis => return Screens.Ending,
+                .Resign => return Screens.Ending,
                 else => {
                     try self.revert_action_list.append(new_state.?);
                 },
             }
         }
+        return Screens.Gameplay;
     }
 
-    fn maybe_change_game_state(self: *GuiState) !?chess.GameState {
+    fn maybe_change_game_state(self: *GameplayInfo) !?chess.GameState {
         if (rl.isMouseButtonReleased(rl.MouseButton.mouse_button_left)) {
             // get down selected tile
             const down_selected_index = try self.get_down_selected_index();
@@ -181,38 +219,16 @@ pub const GuiState = struct {
                 return try self.game.apply_action(action);
             }
         }
-
-        if (rl.isKeyPressed(rl.KeyboardKey.key_x)) {
-            self.screen = Screens.Ending;
-            return null;
-        }
         return null;
     }
 
-    fn update_menu(self: *GuiState) !void {
-        if (rl.isKeyPressed(rl.KeyboardKey.key_space)) {
-            try self.reset_board();
-            self.screen = Screens.Gameplay;
-        }
+    fn index_to_position(index: usize) !chess.Position {
+        const file = @as(u8, @intCast(index % 8));
+        const rank = @as(u8, @intCast(index / 8));
+        return chess.Position{ .file = file, .rank = rank };
     }
 
-    fn update_ending(self: *GuiState) void {
-        if (rl.isKeyPressed(rl.KeyboardKey.key_space)) {
-            self.screen = Screens.Menu;
-        }
-    }
-
-    pub fn update(self: *GuiState) !void {
-        self.mouse_position = rl.getMousePosition();
-
-        switch (self.screen) {
-            .Menu => try self.update_menu(),
-            .Gameplay => try self.update_gameplay(),
-            .Ending => self.update_ending(),
-        }
-    }
-
-    fn get_action(self: *GuiState, down_selected_position: chess.Position, up_selected_position: chess.Position) !chess.Action {
+    fn get_action(self: *GameplayInfo, down_selected_position: chess.Position, up_selected_position: chess.Position) !chess.Action {
         const from_square = try self.game.board.get_square_at(down_selected_position);
 
         const move = chess.game.MoveInfo{ .from = down_selected_position, .to = up_selected_position };
@@ -260,14 +276,14 @@ pub const GuiState = struct {
         }
     }
 
-    fn reset_selected(self: *GuiState) void {
+    fn reset_selected(self: *GameplayInfo) void {
         for (self.tiles, 0..) |_, i| {
             self.tiles[i].down_selected = false;
             self.tiles[i].up_selected = false;
         }
     }
 
-    fn get_down_selected_index(self: *GuiState) !?usize {
+    fn get_down_selected_index(self: *GameplayInfo) !?usize {
         for (self.tiles, 0..) |tile, i| {
             if (tile.down_selected) {
                 return i;
@@ -276,7 +292,7 @@ pub const GuiState = struct {
         return null;
     }
 
-    fn get_up_selected_index(self: *GuiState) !?usize {
+    fn get_up_selected_index(self: *GameplayInfo) !?usize {
         for (self.tiles, 0..) |tile, i| {
             if (tile.up_selected) {
                 return i;
@@ -285,9 +301,81 @@ pub const GuiState = struct {
         return null;
     }
 
-    fn index_to_position(index: usize) !chess.Position {
-        const file = @as(u8, @intCast(index % 8));
-        const rank = @as(u8, @intCast(index / 8));
-        return chess.Position{ .file = file, .rank = rank };
+    pub fn get_ending(self: *GameplayInfo) EndingInfo {
+        _ = self;
+        return EndingInfo{
+            .ending = Endings.Checkmate,
+            .winner = chess.Colors.White,
+        };
+    }
+};
+
+pub const GuiState = struct {
+    screen: Screen,
+    allocator: std.mem.Allocator,
+    x_offset: i32,
+    y_offset: i32,
+    square_size: i32,
+
+    pub fn init(
+        allocator: std.mem.Allocator,
+        x_offset: i32,
+        y_offset: i32,
+        square_size: i32,
+    ) !GuiState {
+        return GuiState{
+            .screen = Screen{
+                .Menu = MenuInfo{},
+            },
+            .allocator = allocator,
+            .x_offset = x_offset,
+            .y_offset = y_offset,
+            .square_size = square_size,
+        };
+    }
+
+    pub fn update(self: *GuiState) !void {
+        const new_screen = switch (self.screen) {
+            .Menu => |*menu| try menu.update(),
+            .Gameplay => |*gameplay| try gameplay.update(),
+            .Ending => |*ending| try ending.update(),
+        };
+
+        const old_screen = switch (self.screen) {
+            .Menu => Screens.Menu,
+            .Gameplay => Screens.Gameplay,
+            .Ending => Screens.Ending,
+        };
+
+        if (new_screen != old_screen) {
+            try self.change_screen(new_screen);
+        }
+    }
+
+    fn change_screen(self: *GuiState, new_screen: Screens) !void {
+        switch (new_screen) {
+            .Menu => {
+                self.screen = Screen{
+                    .Menu = MenuInfo{},
+                };
+            },
+            .Gameplay => {
+                self.screen = Screen{
+                    .Gameplay = try GameplayInfo.init(
+                        self.allocator,
+                        self.x_offset,
+                        self.y_offset,
+                        self.square_size,
+                    ),
+                };
+            },
+            .Ending => {
+                const ending = self.screen.Gameplay.get_ending();
+                self.screen.Gameplay.deinit();
+                self.screen = Screen{
+                    .Ending = ending,
+                };
+            },
+        }
     }
 };
