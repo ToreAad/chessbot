@@ -32,7 +32,6 @@ pub const ChessGame = struct {
 
     pub fn deinit(self: *ChessGame) void {
         self.chess_graphics.deinit();
-        self.state.deinit();
     }
 
     pub fn update_draw_frame(self: *ChessGame) !void {

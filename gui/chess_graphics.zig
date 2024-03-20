@@ -4,6 +4,9 @@ const chess = @import("chess");
 
 const ChessSprites = @import("chess_sprites.zig").ChessSprites;
 const GuiState = @import("gui_state.zig").GuiState;
+const MenuInfo = @import("gui_state.zig").MenuInfo;
+const GameplayInfo = @import("gui_state.zig").GameplayInfo;
+const EndingInfo = @import("gui_state.zig").EndingInfo;
 
 pub const ChessGraphics = struct {
     chess_sprites: ChessSprites,
@@ -19,7 +22,7 @@ pub const ChessGraphics = struct {
 
     fn draw_sprites(
         self: *ChessGraphics,
-        state: *GuiState,
+        state: *GameplayInfo,
     ) !void {
         var file: u8 = 0;
         while (file < 8) : (file += 1) {
@@ -46,7 +49,7 @@ pub const ChessGraphics = struct {
 
     fn draw_menu(
         self: *ChessGraphics,
-        state: *GuiState,
+        state: *MenuInfo,
     ) !void {
         _ = state;
         _ = self;
@@ -62,7 +65,7 @@ pub const ChessGraphics = struct {
 
     fn draw_gameplay(
         self: *ChessGraphics,
-        state: *GuiState,
+        state: *GameplayInfo,
     ) !void {
         for (state.tiles) |tile| {
             tile.draw();
@@ -72,7 +75,7 @@ pub const ChessGraphics = struct {
 
     fn draw_ending(
         self: *ChessGraphics,
-        state: *GuiState,
+        state: *EndingInfo,
     ) !void {
         _ = state;
         _ = self;
@@ -91,9 +94,9 @@ pub const ChessGraphics = struct {
         state: *GuiState,
     ) !void {
         switch (state.screen) {
-            .Menu => try self.draw_menu(state),
-            .Gameplay => try self.draw_gameplay(state),
-            .Ending => try self.draw_ending(state),
+            .Menu => |*menu| try self.draw_menu(menu),
+            .Gameplay => |*gameplay| try self.draw_gameplay(gameplay),
+            .Ending => |*ending| try self.draw_ending(ending),
         }
     }
 };
