@@ -114,7 +114,7 @@ fn build_chess_gui(b: *std.Build, target: std.zig.CrossTarget, optimize: std.bui
 
     const run_step = b.step("run-gui", "Run the chess gui");
     const run_cmd = b.addRunArtifact(gui_exe);
-    run_cmd.cwd = std.build.LazyPath.relative("zig-out/bin/");
+    // run_cmd.cwd = std.build.LazyPath.relative("zig-out/bin/");
 
     run_step.dependOn(&run_cmd.step);
     return gui_exe;

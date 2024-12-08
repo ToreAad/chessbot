@@ -8,6 +8,13 @@ const Position = @import("position.zig").Position;
 const g = @import("game.zig");
 const p = @import("position.zig");
 
+fn abs(x: u8, y: u8) u8 {
+    if (x > y) {
+        return x - y;
+    }
+    return y - x;
+}
+
 fn is_legal_move_pawn(game: *g.Game, action: g.MoveInfo) !bool {
     const from = action.from;
     const to = action.to;
@@ -28,7 +35,8 @@ fn is_legal_move_pawn(game: *g.Game, action: g.MoveInfo) !bool {
         if (rank_diff != 1) {
             return false;
         }
-        const file_diff = @abs(@as(i16, @intCast(from.file)) - @as(i16, @intCast(to.file)));
+
+        const file_diff = abs(from.file, to.file);
         if (file_diff != 1) {
             return false;
         }
@@ -48,7 +56,7 @@ fn is_legal_move_pawn(game: *g.Game, action: g.MoveInfo) !bool {
         if (rank_diff > legal_rank_diff or rank_diff < 1) {
             return false;
         }
-        const file_diff = @abs(@as(i16, @intCast(to.file)) - @as(i16, @intCast(from.file)));
+        const file_diff = abs(to.file, from.file); // @abs(@as(i16, @intCast(to.file)) - @as(i16, @intCast(from.file)));
         if (file_diff != 0) {
             return false;
         }
@@ -64,8 +72,8 @@ fn is_legal_move_knight(game: *g.Game, action: g.MoveInfo) !bool {
         return false;
     }
 
-    const rank_diff = @abs(@as(i16, @intCast(from.rank)) - @as(i16, @intCast(to.rank)));
-    const file_diff = @abs(@as(i16, @intCast(from.file)) - @as(i16, @intCast(to.file)));
+    const rank_diff = abs(from.rank, to.rank); // @abs(@as(i16, @intCast(from.rank)) - @as(i16, @intCast(to.rank)));
+    const file_diff = abs(from.file, to.file); // @abs(@as(i16, @intCast(from.file)) - @as(i16, @intCast(to.file)));
     if (rank_diff == 2 and file_diff == 1) {
         return true;
     }
@@ -83,8 +91,8 @@ fn legal_move_bishop(game: *g.Game, action: g.MoveInfo) !bool {
         return false;
     }
 
-    const rank_diff = @abs(@as(i16, @intCast(from.rank)) - @as(i16, @intCast(to.rank)));
-    const file_diff = @abs(@as(i16, @intCast(from.file)) - @as(i16, @intCast(to.file)));
+    const rank_diff = abs(from.rank, to.rank); // @abs(@as(i16, @intCast(from.rank)) - @as(i16, @intCast(to.rank)));
+    const file_diff = abs(from.file, to.file); // @abs(@as(i16, @intCast(from.file)) - @as(i16, @intCast(to.file)));
     if (rank_diff != file_diff) {
         return false;
     }
@@ -118,8 +126,8 @@ fn legal_move_rook(game: *g.Game, action: g.MoveInfo) !bool {
         return false;
     }
 
-    const rank_diff = @abs(@as(i16, @intCast(from.rank)) - @as(i16, @intCast(to.rank)));
-    const file_diff = @abs(@as(i16, @intCast(from.file)) - @as(i16, @intCast(to.file)));
+    const rank_diff = abs(from.rank, to.rank); // @abs(@as(i16, @intCast(from.rank)) - @as(i16, @intCast(to.rank)));
+    const file_diff = abs(from.file, to.file); // @abs(@as(i16, @intCast(from.file)) - @as(i16, @intCast(to.file)));
     if (rank_diff > 0 and file_diff > 0) {
         return false;
     }
@@ -169,8 +177,8 @@ fn legal_move_queen(game: *g.Game, action: g.MoveInfo) !bool {
         return false;
     }
 
-    const rank_diff = @abs(@as(i16, @intCast(from.rank)) - @as(i16, @intCast(to.rank)));
-    const file_diff = @abs(@as(i16, @intCast(from.file)) - @as(i16, @intCast(to.file)));
+    const rank_diff = abs(from.rank, to.rank); // @abs(@as(i16, @intCast(from.rank)) - @as(i16, @intCast(to.rank)));
+    const file_diff = abs(from.file, to.file); // @abs(@as(i16, @intCast(from.file)) - @as(i16, @intCast(to.file)));
     const diagonal = rank_diff == file_diff;
     const straight = rank_diff == 0 and file_diff > 0 or rank_diff > 0 and file_diff == 0;
     if (!diagonal and !straight) {
@@ -223,8 +231,8 @@ fn legal_move_king(game: *g.Game, action: g.MoveInfo) !bool {
         return false;
     }
 
-    const rank_diff = @abs(@as(i16, @intCast(from.rank)) - @as(i16, @intCast(to.rank)));
-    const file_diff = @abs(@as(i16, @intCast(from.file)) - @as(i16, @intCast(to.file)));
+    const rank_diff = abs(from.rank, to.rank); // @abs(@as(i16, @intCast(from.rank)) - @as(i16, @intCast(to.rank)));
+    const file_diff = abs(from.file, to.file); // @abs(@as(i16, @intCast(from.file)) - @as(i16, @intCast(to.file)));
     if (rank_diff > 1 or file_diff > 1 or (rank_diff == 0 and file_diff == 0)) {
         return false;
     }
@@ -321,6 +329,7 @@ fn legal_castle(game: *g.Game, action: g.CastleInfo) !bool {
 fn legal_en_passant(game: *g.Game, action: g.EnPassantInfo) !bool {
     const from = action.move.from;
     const to = action.move.to;
+
     const from_square = try game.board.get_square_at(from);
     if (from_square.piece != Piece.Pawn) {
         return false;
